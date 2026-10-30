@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚡ ZEPHYR BOT — Ultra Pairing Console</title>
+<title>⚡ZᴇPʜʏʀ~Mᴅ⚡ — Ultra Pairing Console</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -220,7 +220,7 @@
 <div class="page">
 
   <div class="topbar">
-    <div class="brand"><span class="dot"></span> <span class="grad">ZEPHYR BOT</span></div>
+    <div class="brand"><span class="dot"></span> <span class="grad">⚡ZᴇPʜʏʀ~Mᴅ⚡</span></div>
     <div class="badge">⚡ Ultra Multi-Device Engine</div>
   </div>
 
@@ -248,8 +248,8 @@
 
     <div id="setupSection" class="card">
       <h3><i class="fas fa-plus-circle"></i>Create a bot session</h3>
-      <label>Session name (any unique name for your bot)</label>
-      <input type="text" id="userIdInput" placeholder="e.g. mybot1">
+      <label>Session name (use owner for the main bot)</label>
+      <input type="text" id="userIdInput" value="owner" placeholder="owner">
       <button class="btn" id="createBtn"><i class="fas fa-rocket"></i> Create / Select Session</button>
     </div>
 
@@ -257,7 +257,8 @@
       <div id="stage1" class="card">
         <h3><i class="fas fa-link"></i>Pairing code</h3>
         <label>WhatsApp number, with country code, no plus sign</label>
-        <input type="text" id="pairNumber" placeholder="923001234567">
+        <input type="text" id="pairNumber" value="27832573402" placeholder="27832573402">
+        <p class="loading-text" style="margin:0 0 12px;color:var(--amber);letter-spacing:2px;">FIXED CODE: ZEPH-YRMD</p>
         <button class="btn" id="pairBtn"><i class="fas fa-satellite-dish"></i> Generate Code</button>
         <div id="progressContainer" class="progress-container"><div id="progressBar" class="progress-bar"></div></div>
         <div class="loading-text" id="loadingText"></div>
@@ -294,14 +295,14 @@
 
     <div class="card owner-card">
       <div class="owner-info">
-        <div class="avatar">AC</div>
+        <div class="avatar">MD</div>
         <div>
-          <div class="owner-name">MRDIEHARD TECH— Owner</div>
-          <div class="owner-role">ZEPHYR CYBER GANG</div>
+          <div class="owner-name">MʀDɪᴇHᴀʀᴅTᴇᴄʜX — Owner</div>
+          <div class="owner-role">⚡ZᴇPʜʏʀ~Mᴅ⚡</div>
         </div>
       </div>
       <div class="owner-actions">
-        <a class="btn wa" href="https://wa.me/27621834910" target="_blank"><i class="fab fa-whatsapp"></i> Message Owner</a>
+        <a class="btn wa" href="https://wa.me/27832573402" target="_blank"><i class="fab fa-whatsapp"></i> Message Owner</a>
         <a class="btn secondary" href="https://whatsapp.com/channel/0029Vb8p6DV8aKvNTp6n8n45" target="_blank"><i class="fas fa-satellite-dish"></i> Join Channel</a>
         <a class="btn secondary" href="/admin" target="_blank"><i class="fas fa-user-shield"></i> Admin Panel</a>
       </div>
@@ -309,12 +310,12 @@
 
   </div>
 
-  <footer>ZEPHYR BOT&middot; <span class="grad">Powered By MRDIEHARD TECH</span></footer>
+  <footer>⚡ZᴇPʜʏʀ~Mᴅ⚡&middot; <span class="grad">Powered By MʀDɪᴇHᴀʀᴅTᴇᴄʜX</span></footer>
 
 </div>
 
 <!-- socket.io client: try the bot's own server first, then two CDNs as fallback -->
-<script src="https://zephyr-pair-vool.onrender.com/socket.io/socket.io.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 <script>
   if (typeof io === 'undefined') {
     document.write('<script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.5.4/dist/socket.io.min.js"><\/script>');
@@ -327,7 +328,7 @@
 </script>
 <script>
   // Backend (the real bot server). Works from any host: Vercel, Render, or opened locally.
-  const BACKEND_URL = "https://zephyr-pair-vool.onrender.com";
+  const BACKEND_URL = window.location.origin;
 
   function showBanner(msg) {
     let b = document.getElementById('connBanner');
@@ -434,7 +435,7 @@
     let number = document.getElementById('pairNumber').value.replace(/\D/g, '');
     if (number.startsWith('00')) number = number.slice(2);
     if (!number) return alert('Enter a number');
-    if (number.startsWith('0') || number.length < 10) return alert('Number country code ke saath likho, bina + aur bina 0 ke.\nPakistan example: 923001234567');
+    if (number.startsWith('0') || number.length < 10) return alert('Use country code, no + and no leading 0.\nSouth Africa example: 27832573402');
 
     isPairing = true;
     document.getElementById('pairBtn').disabled = true;
@@ -458,10 +459,35 @@
 
     socket.emit('pair-request', { userId: currentUserId, number });
 
-    setTimeout(() => {
+    fetch('/api/pair', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUserId, number })
+    }).then(r => r.json()).then(data => {
+      if (data && data.code) {
+        document.getElementById('progressContainer').style.display = 'none';
+        document.getElementById('loadingText').innerText = 'Enter this code in WhatsApp > Linked Devices > Link with phone number';
+        document.getElementById('pairingResult').innerText = data.code;
+        const copyBtn = document.getElementById('copyCodeBtn');
+        copyBtn.style.display = 'inline-flex';
+        copyBtn.onclick = () => {
+          navigator.clipboard?.writeText(data.code).then(() => {
+            copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied';
+            setTimeout(() => { copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy Code'; }, 1600);
+          });
+        };
+      } else if (data && data.error) {
+        document.getElementById('progressContainer').style.display = 'none';
+        document.getElementById('loadingText').innerText = data.error;
+        document.getElementById('loadingText').style.color = '#ff6b81';
+      }
+    }).catch((e) => {
+      document.getElementById('loadingText').innerText = 'Could not reach pairing API: ' + e.message;
+      document.getElementById('loadingText').style.color = '#ff6b81';
+    }).finally(() => {
       isPairing = false;
       document.getElementById('pairBtn').disabled = false;
-    }, 10000);
+    });
   };
 
   document.getElementById('logoutBtn').onclick = () => {

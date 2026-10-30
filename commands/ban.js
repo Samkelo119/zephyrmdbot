@@ -26,7 +26,7 @@ module.exports = async (sock, from, msg, isAdmin, botData, saveBotData, args) =>
 *⚡ BOT STATUS:* TOTALLY MUTED & DISABLED
 *🔒 PRIVACY MODE:* ENFORCED
 
-*🟨 INFO:* Awais Cyber Bot has killed all active event listeners for this chat node. No reactions, no status, no logs!
+*🟨 INFO:* ZᴇPʜʏʀMᴅ has killed all active event listeners for this chat node. No reactions, no status, no logs!
 `;
         return await sock.sendMessage(from, { text: banMsg, mentions: [from] }, { quoted: msg });
     }
@@ -45,7 +45,7 @@ module.exports = async (sock, from, msg, isAdmin, botData, saveBotData, args) =>
 *💀 TARGET:* @${targetUser}
 *⚡ BOT STATUS:* OPERATIONAL & ACTIVE
 
-*🟨 INFO:* Firewall bypass authorized. Awais Cyber Bot is now listening to this gateway node again.
+*🟨 INFO:* Firewall bypass authorized. ZᴇPʜʏʀMᴅ is now listening to this gateway node again.
 `;
         return await sock.sendMessage(from, { text: unbanMsg, mentions: [from] }, { quoted: msg });
     }

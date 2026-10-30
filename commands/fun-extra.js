@@ -155,8 +155,8 @@ async function calc(sock, from, msg, q) {
 }
 
 async function clock(sock, from, msg) {
-    const now = new Date().toLocaleString('en-PK', { timeZone: 'Asia/Karachi', dateStyle: 'full', timeStyle: 'medium' });
-    await sock.sendMessage(from, { text: `🕐 *Pakistan Time:*\n${now}` }, { quoted: msg });
+    const now = new Date().toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg', dateStyle: 'full', timeStyle: 'medium' });
+    await sock.sendMessage(from, { text: `🕐 *South Africa Time:*\n${now}` }, { quoted: msg });
 }
 
 module.exports = {

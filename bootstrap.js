@@ -47,5 +47,5 @@ if (needsInstall()) {
     console.log('✅ Dependencies already up to date — skipping install.\n');
 }
 
-console.log('🚀 Starting zephyr MD Bot...\n');
+console.log('Starting ZᴇPʜʏʀMᴅ Bot...\n');
 require('./index.js');

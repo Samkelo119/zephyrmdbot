@@ -1,37 +1,19 @@
-'use strict';
+const userSettings = require('../lib/userSettings');
 
-const { setPrefix, getPrefix } = require('../lib/prefixManager');
-const FOOTER = '\n\n> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ZᴇPʜʏʀ~Mᴅ';
-
-module.exports = {
-    name       : 'setprefix',
-    aliases    : ['changeprefix', 'prefix'],
-    description: 'Change the bot command prefix (owner only)',
-    execute    : async (sock, remoteJid, message, args, context) => {
-        if (!context.isOwner) {
-            return sock.sendMessage(remoteJid, { text: '❌ Only the owner can change the prefix!' }, { quoted: message });
-        }
-
-        const newPrefix = args[0];
-        if (!newPrefix || newPrefix.length > 5) {
-            return sock.sendMessage(remoteJid, {
-                text: `❓ Usage: ${getPrefix()}setprefix <symbol>\n\nExample: ${getPrefix()}setprefix !\n\nCurrent prefix: *${getPrefix()}*` + FOOTER
-            }, { quoted: message });
-        }
-
-        const old = getPrefix();
-        setPrefix(newPrefix);
-
-        await sock.sendMessage(remoteJid, {
-            text: [
-                `╔══〔 🔤 ᴘʀᴇꜰɪx ᴄʜᴀɴɢᴇᴅ 〕══╗`,
-                ``,
-                `Old prefix : *${old}*`,
-                `New prefix : *${newPrefix}*`,
-                ``,
-                `Commands now start with *${newPrefix}*`,
-                `Example: *${newPrefix}alive*`,
-            ].join('\n') + FOOTER
-        }, { quoted: message });
+module.exports = async function setprefixCommand(sock, from, msg, args, sender) {
+    const current = userSettings.getPrefix(sender);
+    const next = String(args[0] || '').trim();
+    if (!next) {
+        return sock.sendMessage(from, {
+            text: `Your prefix: *${current}*\nUsage: ${current}setprefix <symbol>\nExample: ${current}setprefix !\nThis only changes the prefix for you.`
+        }, { quoted: msg });
+    }
+    try {
+        userSettings.setPrefix(sender, next);
+        await sock.sendMessage(from, {
+            text: `Your prefix changed from *${current}* to *${next}*\nExample: ${next}menu\nOther numbers keep their own prefix.`
+        }, { quoted: msg });
+    } catch (e) {
+        await sock.sendMessage(from, { text: 'Failed: ' + e.message }, { quoted: msg });
     }
 };

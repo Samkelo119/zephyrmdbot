@@ -4,6 +4,7 @@
 // returned the buffer unchanged and never actually made a real sticker.
 
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+const { withPackMeta, PACK_NAME } = require('../lib/stickerPack');
 
 // 🛡️ Safety net: on some hosts (Termux/Android's Bionic libc especially)
 // sharp's native binding can fail to load. If we `require('sharp')` at the
@@ -45,11 +46,13 @@ async function sticker(sock, from, msg) {
         }
         await sock.sendMessage(from, { react: { text: '⏳', key: msg.key } });
         const buffer = await downloadBuffer(media.data, media.mediaType);
-        const webp = await sharp(buffer)
+        const webpBuf = await sharp(buffer)
             .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
             .webp({ quality: 80 })
             .toBuffer();
-        await sock.sendMessage(from, { sticker: webp }, { quoted: msg });
+        let stamped = webpBuf;
+        try { stamped = await withPackMeta(webpBuf, PACK_NAME); } catch (e) {}
+        await sock.sendMessage(from, { sticker: stamped }, { quoted: msg });
     } catch (e) {
         await sock.sendMessage(from, { text: '❌ Sticker banane mein error aayi.' }, { quoted: msg });
     }

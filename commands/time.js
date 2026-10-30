@@ -2,18 +2,18 @@ module.exports = {
     name: 'time',
     aliases: ['t'],
     description: 'Get current date and time',
-    execute: async (sock, remoteJid, message, args) => {
+    execute: async (sock, remoteJid, message) => {
         try {
+            const opts = { timeZone: 'Africa/Johannesburg' };
             const now = new Date();
-            const timeText = `🕐 *Current Time:*\n\n` +
-                            `📅 *Date:* ${now.toLocaleDateString()}\n` +
-                            `🕰️ *Time:* ${now.toLocaleTimeString()}\n` +
-                            `🌍 *Timezone:* ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
-            
-            await sock.sendMessage(remoteJid, { text: timeText });
+            const timeText = `🕐 *South Africa Time:*\n\n` +
+                            `📅 *Date:* ${now.toLocaleDateString('en-ZA', opts)}\n` +
+                            `🕰️ *Time:* ${now.toLocaleTimeString('en-ZA', opts)}\n` +
+                            `🌍 *Timezone:* Africa/Johannesburg (SAST)`;
+            await sock.sendMessage(remoteJid, { text: timeText }, { quoted: message });
         } catch (err) {
             console.error('Time command error:', err);
-            await sock.sendMessage(remoteJid, { text: '❌ Error executing time command.' });
+            await sock.sendMessage(remoteJid, { text: 'Error executing time command.' }, { quoted: message });
         }
     }
 };

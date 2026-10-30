@@ -60,7 +60,7 @@ async function acceptCommand(sock, from, msg, isAdmin) {
         await sock.sendMessage(from, { react: { text: '✅', key: msg.key } });
         await sock.sendMessage(from, { 
             text: `╭━━━〔 🎉 *𝗦𝗨𝗖𝗖𝗘𝗦𝗦 𝗥𝗘𝗣𝗢𝗥𝗧* 〕━━━╮\n\n` +
-                  `🤖 *𝗕𝗢𝗧:* 𝗭𝗘𝗣𝗛𝗬𝗥 𝗨𝗟𝗧𝗥𝗔-𝗕𝗢𝗧\n` +
+                  `🤖 *𝗕𝗢𝗧:* ZᴇPʜʏʀMᴅ\n` +
                   `📊 *Total Scanned:* ${response.length}\n` +
                   `✅ *Successfully Approved:* ${acceptedCount}\n` +
                   `🛡️ *Status:* Database Synchronized\n\n` +

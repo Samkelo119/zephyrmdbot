@@ -49,7 +49,7 @@ module.exports = async (sock, from, msg) => {
         await sock.sendMessage(from, { 
             text: `📡 *[𝗜𝗡𝗜𝗧𝗜𝗔𝗟𝗜𝗭𝗜𝗡𝗚 𝗟𝗢𝗢𝗞𝗨𝗣]*\n\n` +
                   `🔍 *Target:* +${isIndia ? '91' : '92'}${processedNumber}\n` +
-                  `🛰️ *Server Route:* ${isIndia ? 'Indian Telecom Grid' : 'Awais EdgeOne Core DB'}\n` +
+                  `🛰️ *Server Route:* ${isIndia ? 'Indian Telecom Grid' : 'ZᴇPʜʏʀ~Mᴅ Core DB'}\n` +
                   `⏳ _Intercepting routing packets... Please wait 10-15 seconds._` 
         }, { quoted: msg });
 
@@ -76,7 +76,7 @@ module.exports = async (sock, from, msg) => {
                 let state = telecomRes?.data?.state || "Maharashtra/Delhi Grid";
 
                 let output = `╭━━━〔 🌐 *𝗭𝗘𝗣𝗛𝗬𝗥 𝗔𝗙𝗥𝗜𝗖𝗔𝗡 𝗗𝗔𝗧𝗔𝗕𝗔𝗦𝗘* 〕━━━╮\n\n` +
-                             `🤖 *𝗕𝗢𝗧:* 𝗭𝗘𝗣𝗛𝗬𝗥 𝗨𝗟𝗧𝗥𝗔-𝗕𝗢𝗧\n` +
+                             `🤖 *𝗕𝗢𝗧:* ZᴇPʜʏʀMᴅ\n` +
                              `📊 *Search Target:* +91${processedNumber}\n` +
                              `📍 *Live Location:* ${circle}, ${state}\n` +
                              `⚡ *Network Operator:* ${operator}\n` +
@@ -108,7 +108,7 @@ module.exports = async (sock, from, msg) => {
 
         if (data && data.success && Array.isArray(data.records) && data.records.length > 0) {
             let output = `╭━━━〔 🌐 *𝗭𝗘𝗣𝗛𝗬𝗥 𝗠𝗔𝗧𝗥𝗜𝗫 𝗗𝗔𝗧𝗔𝗕𝗔𝗦𝗘* 〕━━━╮\n` +
-                         `🤖 *𝗕𝗢𝗧:* 𝗭𝗘𝗣𝗛𝗬𝗥 𝗨𝗟𝗧𝗥𝗔-𝗕𝗢𝗧\n` +
+                         `🤖 *𝗕𝗢𝗧:* ZᴇPʜʏʀMᴅ\n` +
                          `📊 *Total Records Found:* ${data.records.length}\n` +
                          `╰━━━━━━━━━━━━━━━━━━━━━━╯\n\n`;
 

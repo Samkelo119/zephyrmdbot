@@ -30,7 +30,7 @@ async function autoreadCommand(sock, chatId, message) {
                     isForwarded: true,
                     forwardedNewsletterMessageInfo: {
                         newsletterJid: '120363409420355330@newsletter',
-                        newsletterName: '⚡ZᴇPʜʏʀ~Mᴅ Bᴏᴛ⚡',
+                        newsletterName: '⚡ZᴇPʜʏʀ~Mᴅ⚡',
                         serverMessageId: -1
                     }
                 }
@@ -65,7 +65,7 @@ async function autoreadCommand(sock, chatId, message) {
                         isForwarded: true,
                         forwardedNewsletterMessageInfo: {
                             newsletterJid: '120363409420355330@newsletter',
-                            newsletterName: '⚡ZᴇPʜʏʀ~Mᴅ Bᴏᴛ⚡',
+                            newsletterName: '⚡ZᴇPʜʏʀ~Mᴅ⚡',
                             serverMessageId: -1
                         }
                     }
@@ -84,7 +84,7 @@ async function autoreadCommand(sock, chatId, message) {
         await sock.sendMessage(chatId, { react: { text: config.enabled ? '👁️' : '⚠️', key: message.key } });
         await sock.sendMessage(chatId, {
             text: `╭━━━〔 ${config.enabled ? '👁️ *𝗘𝗡𝗚𝗜𝗡𝗘 𝗔𝗖𝗧𝗜𝗩𝗔𝗧𝗘𝗗*' : '⚠️ *𝗘𝗡𝗚𝗜𝗡𝗘 𝗦𝗧𝗢𝗣𝗣𝗘𝗗*'} 〕━━━╮\n\n` +
-                  `🤖 *𝗕𝗢𝗧:* 𝗭𝗘𝗣𝗛𝗬𝗥 𝗨𝗟𝗧𝗥𝗔-𝗕𝗢𝗧\n` +
+                  `🤖 *𝗕𝗢𝗧:* ZᴇPʜʏʀMᴅ\n` +
                   `⚙️ *Module:* Auto-Read Matrix\n` +
                   `⚡ *Status:* ${config.enabled ? 'Active [Monitoring Packets]' : 'Disabled [Standby]'}\n\n` +
                   `✨ _Incoming messages will now be processed according to structural UI protocols._\n\n` +
@@ -94,7 +94,7 @@ async function autoreadCommand(sock, chatId, message) {
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
                     newsletterJid: '120363409420355330@newsletter',
-                    newsletterName: '⚡ZᴇPʜʏʀ~Mᴅ Bᴏᴛ⚡',
+                    newsletterName: '⚡ZᴇPʜʏʀ~Mᴅ⚡',
                     serverMessageId: -1
                 }
             }
@@ -110,7 +110,7 @@ async function autoreadCommand(sock, chatId, message) {
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
                     newsletterJid: '120363409420355330@newsletter',
-                    newsletterName: '⚡ZᴇPʜʏʀ~Mᴅ Bᴏᴛ⚡',
+                    newsletterName: '⚡ZᴇPʜʏʀ~Mᴅ⚡',
                     serverMessageId: -1
                 }
             }
@@ -164,7 +164,7 @@ function isBotMentionedInMessage(message, botNumber) {
         }
         
         // Check for bot name mentions (optional, can be customized)
-        const botNames = [global.botname?.toLowerCase(), 'bot', 'awais mayo ultra-bot', 'awais-cyber-tech'];
+        const botNames = [global.botname?.toLowerCase(), 'bot', 'zephyr', 'zephyrmd', 'zephyr md'];
         const words = textContent.toLowerCase().split(/\s+/);
         if (botNames.some(name => words.includes(name))) {
             return true;

@@ -81,7 +81,7 @@ module.exports = async (sock, from, msg, args) => {
         // Generate stylized output layout
         let jidPayload =
             `╭━━━〔 📡 *𝗝𝗜𝗗 𝗧𝗥𝗔𝗖𝗞𝗘𝗥 𝗟𝗢𝗚* 〕━━━╮\n\n` +
-            `🤖 *𝗕𝗢𝗧:* 𝗭𝗘𝗣𝗛𝗬𝗥 𝗨𝗟𝗧𝗥𝗔-𝗕𝗢𝗧\n` +
+            `🤖 *𝗕𝗢𝗧:* ZᴇPʜʏʀMᴅ\n` +
             `⚙️ *Module:* Packet Sniffer & Identity Linker\n` +
             `🔍 *Source:* ${extractionType}\n\n` +
             `🔑 *𝘙𝘦𝘴𝘰𝘭𝘷𝘦𝘥 𝘑𝘐𝘋:* \n\`\`\`${targetJid}\`\`\`\n\n` +

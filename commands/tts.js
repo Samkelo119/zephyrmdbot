@@ -1,39 +1,14 @@
-const gTTS = require('gtts');
-const fs = require('fs');
-const path = require('path');
-
-async function ttsCommand(sock, chatId, text, message, language = 'en') {
+async function ttsCommand(sock, from, msg, q) {
+    const text = String(q || '').trim();
     if (!text) {
-        await sock.sendMessage(chatId, { text: 'Please provide the text for TTS conversion.' });
-        return;
+        return sock.sendMessage(from, { text: 'Usage: .tts <text>' }, { quoted: msg });
     }
-
-    const fileName = `tts-${Date.now()}.mp3`;
-    const filePath = path.join(__dirname, '..', 'assets', fileName);
-
-    const gtts = new gTTS(text, language);
-    gtts.save(filePath, async function (err) {
-        if (err) {
-            await sock.sendMessage(chatId, { text: 'Error generating TTS audio.' });
-            return;
-        }
-
-        await sock.sendMessage(chatId, {
-            audio: { url: filePath },
-            mimetype: 'audio/mpeg'
-        }, { quoted: message });
-
-        fs.unlinkSync(filePath);
-    });
+    const url = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=' + encodeURIComponent(text.slice(0, 180));
+    try {
+        await sock.sendMessage(from, { audio: { url }, mimetype: 'audio/mpeg', ptt: false }, { quoted: msg });
+    } catch (e) {
+        await sock.sendMessage(from, { text: 'TTS failed: ' + e.message }, { quoted: msg });
+    }
 }
 
-module.exports = {
-    name: 'tts',
-    aliases: ['texttospeech', 'speak'],
-    description: 'Convert text to speech audio',
-    execute: async (sock, remoteJid, message, args) => {
-        const text = args.join(' ');
-        const lang = args[0]?.length === 2 ? args.shift() : 'en';
-        return ttsCommand(sock, remoteJid, text, message, lang);
-    }
-};
+module.exports = ttsCommand;

@@ -2,14 +2,14 @@ const fs = require('fs');
 const path = require('path');
 const pkg = require('./package.json');
 
-global.botname = '⚡ZᴇPʜʏʀ~Mᴅ Bᴏᴛ⚡';
+global.botname = '⚡ZᴇPʜʏʀ~Mᴅ⚡';
 global.version = pkg.version || '1.0.0';
 
 global.chid = '120363409420355330@newsletter';
-global.chname = '⚡ZᴇPʜʏʀ~Mᴅ Bᴏᴛ⚡';
+global.chname = '⚡ZᴇPʜʏʀ~Mᴅ⚡';
 
 global.ownerNumbers = [];
-global.primaryOwnerNumber = '27621834910';
+global.primaryOwnerNumber = '27832573402';
 
 
 
@@ -332,7 +332,7 @@ module.exports = {
     version: global.version,
     channelJid: global.chid,
     channelName: global.chname,
-    ownerName: 'MʀDɪᴇHᴀʀᴅ TᴇᴄʜX',
+    ownerName: 'MʀDɪᴇHᴀʀᴅTᴇᴄʜX',
     ownerNumber: global.primaryOwnerNumber,
     announcementUrl: ANNOUNCEMENT_URL,
     fetchAnnouncement,

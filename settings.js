@@ -4,23 +4,23 @@ module.exports = {
     // 🤖 ZEPHYR MD BOT CONFIG
     // ==============================
 
-    botName: "⚡ ZEPHYR X MD BOT",
+    botName: "⚡ZᴇPʜʏʀ~Mᴅ⚡",
     version: "3.0.0",
 
-    ownerName: "👑 MRDIEHARD TECH",
-    ownerNumber: process.env.OWNER_NUMBER || "27621834910",
+    ownerName: "MʀDɪᴇHᴀʀᴅTᴇᴄʜX",
+    ownerNumber: process.env.OWNER_NUMBER || "27832573402",
 
     // Bot Status
     prefix: ".",
     mode: "private",
-    timezone: "Asia/Karachi",
+    timezone: "Africa/Johannesburg",
 
     // API KEYS
     giphyApiKey: process.env.GIPHY_API_KEY || "dc6zaTOxFJmzC",
 
     // Channel
     channel: {
-        name: "ZEPHYR GANG",
+        name: "ZᴇPʜʏʀMᴅ",
         url: "https://whatsapp.com/channel/0029Vb8p6DV8aKvNTp6n8n45"
     },
 
@@ -46,13 +46,13 @@ module.exports = {
 
         online:
         `
-╭━━━〔 ⚡ ZEPHYR MD BOT 〕━━━╮
+╭━━━〔 ⚡ZᴇPʜʏʀ~Mᴅ⚡ 〕━━━╮
 
 ✅ System Online
 🚀 Multi Device Active
 🛡️ Security Enabled
 
-Powered By zephyr Gang
+Powered By MʀDɪᴇHᴀʀᴅTᴇᴄʜX
 ╰━━━━━━━━━━━━━━━━╯
         `,
 
@@ -62,7 +62,7 @@ Powered By zephyr Gang
 🔐 Pairing System Started
 
 ⚡ Secure Connection
-🤖 ZEPHYR MD Bot
+⚡ZᴇPʜʏʀ~Mᴅ⚡
         `,
 
 

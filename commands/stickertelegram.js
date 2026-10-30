@@ -19,11 +19,11 @@ const TMP_DIR   = path.join(__dirname, '../tmp');
 
 if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
 
-async function addStickerExif(buffer, packName = 'ZᴇPʜʏʀ~Mᴅ') {
+async function addStickerExif(buffer, packName = '༒ZᴇᴘʜʏʀMᴅ༆') {
     try {
         const img      = new webp.Image();
         await img.load(buffer);
-        const meta     = { 'sticker-pack-name': packName, 'sticker-pack-publisher': 'MʀDɪᴇHᴀʀᴅ TᴇᴄʜX' };
+        const meta     = { 'sticker-pack-name': packName, 'sticker-pack-publisher': 'MʀDɪᴇHᴀʀᴅTᴇᴄʜX' };
         const jsonBuf  = Buffer.from(JSON.stringify(meta), 'utf8');
         const exifAttr = Buffer.from([
             0x49,0x49,0x2A,0x00,0x08,0x00,0x00,0x00,0x01,0x00,

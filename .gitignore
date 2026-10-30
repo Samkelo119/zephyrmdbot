@@ -1,0 +1,13 @@
+node_modules/
+auth_info/
+auth_info_backup/
+auth_info_*
+data/
+tmp/
+.env
+.env.*
+*.log
+.monkeycode-tmp-files/
+package-lock.json
+Zephyr-md.zip
+*.zip

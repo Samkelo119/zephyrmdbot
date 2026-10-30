@@ -152,7 +152,7 @@ async function handleMentionDetection(sock, chatId, message) {
 
 async function mentionToggleCommand(sock, chatId, message, args, isOwner) {
 	if (!isOwner) return sock.sendMessage(chatId, { text: 'Only Owner or Sudo can use this command.' }, { quoted: message });
-	const onoff = (args || '').trim().toLowerCase();
+	const onoff = (Array.isArray(args) ? args.join(' ') : String(args || '')).trim().toLowerCase();
 	if (!onoff || !['on','off'].includes(onoff)) {
 		return sock.sendMessage(chatId, { text: 'Usage: .mention on|off' }, { quoted: message });
 	}

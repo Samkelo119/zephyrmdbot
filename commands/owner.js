@@ -1,7 +1,7 @@
 const fs   = require('fs');
 const path = require('path');
 
-const FOOTER = '\n\n> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ZᴇPʜʏʀ~Mᴅ';
+const FOOTER = '\n\n> ᴘᴏᴡᴇʀᴇᴅ ʙʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX';
 
 module.exports = {
     name: 'owner',
@@ -9,15 +9,15 @@ module.exports = {
     description: 'Show owner / developer information',
     execute: async (sock, remoteJid, message) => {
         try {
-            const ownerNumber = '27621834910';
-            const ownerName   = 'MʀDɪᴇHᴀʀᴅ TᴇᴄʜX';
+            const ownerNumber = '27832573402';
+            const ownerName   = 'MʀDɪᴇHᴀʀᴅTᴇᴄʜX';
 
             const text = [
                 `╔══〔 👑 ᴏᴡɴᴇʀ ɪɴꜰᴏ 〕══╗`,
                 `║    𝑴𝑹𝑫𝑰𝑬𝑯𝑨𝑹𝑫 𝑻𝑬𝑪𝑯    ║`,
                 `╚═══════════════════════╝`,
                 ``,
-                `✦  *ɴᴀᴍᴇ*        ➜  MʀDɪᴇHᴀʀᴅ TᴇᴄʜX`,
+                `✦  *ɴᴀᴍᴇ*        ➜  MʀDɪᴇHᴀʀᴅTᴇᴄʜX`,
                 `✦  *ɴᴜᴍʙᴇʀ*      ➜  +${ownerNumber}`,
                 `✦  *ᴡʜᴀᴛꜱᴀᴘᴘ*   ➜  wa.me/${ownerNumber}`,
                 `✦  *ɢɪᴛʜᴜʙ*      ➜  CᴏMɪɴɢ/Sᴏᴏɴ`,
@@ -37,7 +37,7 @@ module.exports = {
             const vcard =
                 'BEGIN:VCARD\nVERSION:3.0\n' +
                 `FN:${ownerName}\n` +
-                'ORG:MʀDɪᴇHᴀʀᴅ TᴇᴄʜX;\n' +
+                'ORG:MʀDɪᴇHᴀʀᴅTᴇᴄʜX;\n' +
                 `TEL;type=CELL;type=VOICE;waid=${ownerNumber}:+${ownerNumber}\n` +
                 'END:VCARD';
 

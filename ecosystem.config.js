@@ -1,6 +1,6 @@
 module.exports = {
   apps : [{
-    name: "new-zephyr-bot",
+    name: "zephyrmd-bot",
     script: "./index.js",
     watch: false,
     autorestart: true,

@@ -61,7 +61,7 @@ async function dpCommand(sock, from, msg, args) {
 
         // Frame structure for the display log
         let captionText = `╭━━━〔 👤 *𝗗𝗔𝗧𝗔 𝗘𝗫𝗧𝗥𝗔𝗖𝗧𝗘𝗗* 〕━━━╮\n\n` +
-                          `🤖 *𝗕𝗢𝗧:* 𝗭𝗘𝗣𝗛𝗬𝗥 𝗨𝗟𝗧𝗥𝗔-𝗕𝗢𝗧\n` +
+                          `🤖 *𝗕𝗢𝗧:* ZᴇPʜʏʀMᴅ\n` +
                           `⚙️ *Module:* DP Interceptor V2\n` +
                           `📱 *Target Node:* +${targetNumber}\n\n` +
                           `📡 _Profile picture secure buffer loaded successfully._\n\n` +

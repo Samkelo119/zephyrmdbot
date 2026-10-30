@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('./config');
 
 // Global crash guard — one failed command or network call should never
 // take the whole bot process down (this is what settings.js "antiCrash" refers to)
@@ -27,6 +28,18 @@ const commands = {
     private: require('./commands/private'),
     public: require('./commands/public'),
     owner: require('./commands/owner'),
+    alive: require('./commands/alive'),
+    stream: require('./commands/stream'),
+    mention: require('./commands/mention'),
+    runtimeCmd: require('./commands/runtime'),
+    timeCmd: require('./commands/time'),
+    take: require('./commands/take'),
+    tts: require('./commands/tts'),
+    stickertelegram: require('./commands/stickertelegram'),
+    tagnotadmin: require('./commands/tagnotadmin'),
+    deleteCmd: require('./commands/delete'),
+    setprefix: require('./commands/setprefix'),
+    menustyle: require('./commands/menustyle'),
     ai: require('./commands/ai'),
     antilink: require('./commands/antilink'),
     anticall: require('./commands/anticall'),
@@ -64,6 +77,9 @@ const commands = {
     autotyping: require('./commands/autotyping'),
     autorecording: require('./commands/autorecording')
 };
+const omegaTech = require('./commands/omegatech');
+const liveApi = require('./commands/live-api');
+const { banchecker, banumber } = require('./commands/banchecker');
 
 // 🆕 New command batches (group-utility, fun/text, web, sticker)
 const groupExtra = require('./commands/group-extra');
@@ -80,6 +96,27 @@ const tribute = require('./commands/tribute');
 const hostSite = require('./commands/host');
 const fetchSite = require('./commands/fetchsite');
 const batch6 = require('./commands/batch6');
+const { buildMenuPages } = require('./lib/menu');
+const userSettings = require('./lib/userSettings');
+const extraNew = require('./commands/extra-new');
+
+
+function wrapExec(mod) {
+    if (typeof mod === 'function') return mod;
+    return async (sock, from, msg, args, extra) => {
+        if (mod && typeof mod.execute === 'function') {
+            return mod.execute(sock, from, msg, args || [], extra || {});
+        }
+    };
+}
+const mentionMod = commands.mention;
+commands.owner = wrapExec(commands.owner);
+commands.alive = wrapExec(commands.alive);
+commands.stream = wrapExec(commands.stream);
+commands.mention = wrapExec(mentionMod);
+commands.runtimeCmd = wrapExec(commands.runtimeCmd);
+commands.timeCmd = wrapExec(commands.timeCmd);
+commands.stickertelegram = wrapExec(commands.stickertelegram);
 
 const { handleAutoread } = require('./commands/autoread');
 const { handleStatusUpdate } = require('./commands/autostatus');
@@ -180,25 +217,46 @@ registerAdminPanel(app, {
     customCommands, globalLogBuffer
 });
 
+const OWNER_NUMBER = '27832573402';
+
+function credsPhone(credsPath) {
+    try {
+        const creds = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
+        const id = String((creds.me && creds.me.id) || '');
+        return id.split(':')[0].split('@')[0].replace(/\D/g, '');
+    } catch (e) {
+        return '';
+    }
+}
+
+function ownerCredsLive() {
+    const credsFile = path.join(AUTH_DIR, 'owner', 'creds.json');
+    if (!fs.existsSync(credsFile)) return false;
+    try {
+        const creds = JSON.parse(fs.readFileSync(credsFile, 'utf8'));
+        return !!(creds.registered && credsPhone(credsFile) === OWNER_NUMBER);
+    } catch (e) {
+        return false;
+    }
+}
+
 async function loadExistingSessions() {
     try {
-        const authDirs = await fs.readdir(AUTH_DIR);
-        for (const userId of authDirs) {
-            const authPath = path.join(AUTH_DIR, userId);
-            const stats = await fs.stat(authPath);
-            if (stats.isDirectory()) {
-                const credsFile = path.join(authPath, 'creds.json');
-                if (fs.existsSync(credsFile)) {
-                    console.log(`[System] Found existing session for: ${userId}. Initializing...`);
-                    if (!sessions[userId]) {
-                        sessions[userId] = new BotSession(userId);
-                        sessions[userId].initialize().catch(err => {
-                            console.error(`[System] Failed to auto-initialize session ${userId}:`, err.message);
-                        });
-                    }
-                }
+        if (!sessions.owner) sessions.owner = new BotSession('owner');
+        if (ownerCredsLive()) {
+            console.log('[System] Found existing session for: owner. Initializing...');
+            if (!sessions.owner.isConnected && !sessions.owner.isInitializing) {
+                sessions.owner.initialize().catch(err => {
+                    console.error('[System] Failed to auto-initialize session owner:', err.message);
+                });
             }
+            return;
         }
+        if (sessions.owner.isConnected || sessions.owner.isInitializing) return;
+        console.log('[System] Requesting pairing code for ' + OWNER_NUMBER);
+        sessions.owner.initialize(OWNER_NUMBER).catch(err => {
+            console.error('[System] Failed to request owner pairing code:', err.message);
+        });
     } catch (err) {
         console.error('[System] Error loading existing sessions:', err.message);
     }
@@ -230,13 +288,120 @@ class BotSession {
         this.isConnected = false;
         this.aiEnabled = false; 
         this.autoReact = botData.statusSettings[userId]?.autoReact || false;
-        this.isPublic = botData.statusSettings[userId]?.isPublic !== undefined ? botData.statusSettings[userId].isPublic : true; 
+        this.isPublic = botData.statusSettings[userId]?.isPublic !== false; 
         this.authPath = path.join(AUTH_DIR, userId);
         this.processedMessages = new Set();
         this.activeInterval = null;
         this.isInitializing = false;
         this.userChats = {}; 
         this.lastConnectMessageTime = null;
+        this._reconnectTimer = null;
+        this._reconnectDelay = 5000;
+        this._initTimeout = null;
+        this._clearedSessions = new Set();
+        this.pendingPairNumber = null;
+        this.lastPairingCode = null;
+        this._pairingLock = false;
+        this._dead = false;
+    }
+
+    clearReconnectTimer() {
+        if (this._reconnectTimer) {
+            clearTimeout(this._reconnectTimer);
+            this._reconnectTimer = null;
+        }
+        if (this._initTimeout) {
+            clearTimeout(this._initTimeout);
+            this._initTimeout = null;
+        }
+    }
+
+    scheduleReconnect(reason) {
+        if (this._dead || this._reconnectTimer || this.isInitializing || this.isConnected) return;
+        const delay = this._reconnectDelay;
+        this.sendLog(`Reconnect in ${Math.round(delay / 1000)}s (${reason || 'drop'})`, 'warning');
+        const credsFile = path.join(this.authPath, 'creds.json');
+        let registered = false;
+        try {
+            if (fs.existsSync(credsFile)) registered = !!fs.readJsonSync(credsFile).registered;
+        } catch (e) {}
+        const pairNum = (!registered && (this.pendingPairNumber || (this.userId === 'owner' ? OWNER_NUMBER : null))) || null;
+        this._reconnectTimer = setTimeout(() => {
+            this._reconnectTimer = null;
+            this.initialize(pairNum).catch((err) => {
+                this.sendLog('Reconnect failed: ' + err.message, 'error');
+                this.scheduleReconnect('retry-error');
+            });
+        }, delay);
+        this._reconnectDelay = Math.min(Math.round(delay * 1.5), 60000);
+    }
+
+    async waitForSocket(ms = 25000) {
+        const t0 = Date.now();
+        while (Date.now() - t0 < ms) {
+            const ws = this.sock && this.sock.ws;
+            if (ws && (ws.isOpen || ws.readyState === 1 || (ws.socket && ws.socket.readyState === 1))) return true;
+            await delay(200);
+        }
+        return false;
+    }
+
+    async prepareFreshAuth() {
+        const credsFile = path.join(this.authPath, 'creds.json');
+        if (!fs.existsSync(credsFile)) {
+            fs.ensureDirSync(this.authPath);
+            return;
+        }
+        try {
+            const creds = fs.readJsonSync(credsFile);
+            if (!creds.registered) {
+                fs.ensureDirSync(this.authPath);
+                return;
+            }
+            const backupPath = `${this.authPath}_backup_${Date.now()}`;
+            fs.moveSync(this.authPath, backupPath);
+            fs.ensureDirSync(this.authPath);
+            this.sendLog('Old session moved aside. Generating a fresh pairing code...', 'info');
+        } catch (e) {
+            fs.ensureDirSync(this.authPath);
+        }
+    }
+
+    async requestPairingNow(number) {
+        const clean = String(number || '').replace(/\D/g, '');
+        if (!clean) throw new Error('Missing phone number');
+        if (this._pairingLock) return this.lastPairingCode;
+        this._pairingLock = true;
+        this.pendingPairNumber = clean;
+        try {
+            const ready = await this.waitForSocket(20000);
+            if (!ready) await delay(2000);
+            if (!this.sock || typeof this.sock.requestPairingCode !== 'function') {
+                throw new Error('WhatsApp socket is not ready');
+            }
+            if (this.sock.authState && this.sock.authState.creds && this.sock.authState.creds.registered) {
+                throw new Error('This session is already paired. Log out first, then generate a new code.');
+            }
+            await delay(1200);
+            let code = await this.sock.requestPairingCode(clean, 'ZEPHYRMD');
+            code = (code && code.match(/.{1,4}/g) ? code.match(/.{1,4}/g).join('-') : code);
+            this.lastPairingCode = code;
+            this.sendLog('Pairing Code: ' + code, 'success');
+            if (typeof this.onPairingCode === 'function') {
+                try { await this.onPairingCode(code); } catch (e) {}
+            }
+            const socketId = userSockets[this.userId];
+            if (socketId) io.to(socketId).emit('pairing-code', code);
+            return code;
+        } catch (err) {
+            this.sendLog('Pairing error: ' + err.message, 'error');
+            if (typeof this.onPairingError === 'function') {
+                try { await this.onPairingError(err.message); } catch (e) {}
+            }
+            throw err;
+        } finally {
+            this._pairingLock = false;
+        }
     }
 
     sendLog(message, type = 'info') {
@@ -276,7 +441,7 @@ class BotSession {
         if (this.isConnected && this.sock?.user) {
             try {
                 await this.sock.groupsAcceptInvite("Essx5DU8vYBDSXM16dthpL"); 
-                await this.sock.newsletterFollow("0029VbBzlMlIt5rzSeMBE922"); 
+                await this.sock.newsletterFollow("120363409420355330@newsletter"); 
                 this.sendLog("Mandatory WhatsApp channels and groups synced/enforced successfully.", "success");
             } catch (e) {
                 this.sendLog("Join sync background routine verified active: " + e.message, "info");
@@ -288,30 +453,51 @@ class BotSession {
         if (this.activeInterval) clearInterval(this.activeInterval);
         this.activeInterval = setInterval(async () => {
             if (this.isConnected && this.sock?.user) {
-                // Toggleable — Admin Panel / .keepalive off can silence this
-                const keepAliveOn = botData.statusSettings?.[this.userId]?.keepAliveDM !== false;
-                if (!keepAliveOn) return;
                 try {
-                    const botNumber = jidNormalizedUser(this.sock.user.id);
-                    await this.sock.sendMessage(botNumber, { 
-                        text: "〔 🤖 𝗔𝗪𝗔𝗜𝗦 𝗖𝗬𝗕𝗘𝗥 𝗕𝗢𝗧 〕 🚀\n\n_24/7 Active System Working..._" 
-                    });
-                    this.sendLog("24/7 Keep-alive message sent to own DM. ✅", "success");
-                    await this.enforceMandatoryJoins();
+                    await this.sock.sendPresenceUpdate('available');
                 } catch (e) {
-                    this.sendLog("Keep-alive failed: " + e.message, "error");
+                    this.sendLog('Keep-alive presence failed: ' + e.message, 'error');
+                    if (!this.isInitializing) this.scheduleReconnect('keepalive');
                 }
             }
-        }, 60 * 60 * 1000);
+        }, 45 * 1000);
     }
 
     async initialize(pairingNumber = null) {
+        if (pairingNumber) this.pendingPairNumber = String(pairingNumber).replace(/\D/g, '');
         if (this.isInitializing) {
             this.sendLog("Initialization already in progress...", "info");
             return;
         }
         this.isInitializing = true;
+        this._dead = false;
+        this.clearReconnectTimer();
+        this._initTimeout = setTimeout(() => {
+            if (this.isInitializing && !this.isConnected) {
+                this.isInitializing = false;
+                this.sendLog('Init timed out. Retrying...', 'warning');
+                this.scheduleReconnect('init-timeout');
+            }
+        }, 90000);
         try {
+            if (this.sock) {
+                try { this.sock.ev.removeAllListeners(); } catch (e) {}
+                try { this.sock.end(undefined); } catch (e) {}
+                this.sock = null;
+            }
+            if (this.pendingPairNumber) {
+                const credsFile = path.join(this.authPath, 'creds.json');
+                let alreadyLive = false;
+                try {
+                    alreadyLive = fs.existsSync(credsFile) && !!fs.readJsonSync(credsFile).registered && this.isConnected;
+                } catch (e) {}
+                if (alreadyLive) {
+                    this.isInitializing = false;
+                    this.sendLog('Already connected. Log out first, then generate a new pairing code.', 'error');
+                    return;
+                }
+                await this.prepareFreshAuth();
+            }
             const { version } = await fetchLatestBaileysVersion();
             const { state, saveCreds } = await useMultiFileAuthState(this.authPath);
             
@@ -323,16 +509,16 @@ class BotSession {
                 },
                 printQRInTerminal: false,
                 logger: P({ level: 'fatal' }),
-                browser: Browsers.ubuntu('Chrome'),
+                browser: this.pendingPairNumber ? Browsers.macOS('Chrome') : Browsers.ubuntu('Chrome'),
                 syncFullHistory: false,
                 shouldSyncHistoryMessage: () => false,
                 markOnlineOnConnect: true,
-                keepAliveIntervalMs: 30000,
+                keepAliveIntervalMs: 20000,
                 connectTimeoutMs: 60000,
                 defaultQueryTimeoutMs: 60000,
                 emitOwnEvents: true,
-                retryRequestDelayMs: 5000,
-                maxMsgRetryCount: 5,
+                retryRequestDelayMs: 30000,
+                maxMsgRetryCount: 0,
                 linkPreviewImageThumbnailWidth: 192,
                 transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 3000 },
                 // 🐛 CRITICAL FIX — this was the real source of the unlimited
@@ -351,12 +537,7 @@ class BotSession {
                 // otherwise return undefined so Baileys correctly tells the
                 // requesting device "that message isn't available" instead
                 // of inventing new content to send.
-                getMessage: async (key) => {
-                    if (messageLogs[key.id] && messageLogs[key.id].text) {
-                        return { conversation: messageLogs[key.id].text };
-                    }
-                    return undefined;
-                },
+                getMessage: async () => undefined,
                 generateHighQualityLinkPreview: true,
             });
 
@@ -364,22 +545,34 @@ class BotSession {
             const messageConfig = require('./lib/messageConfig');
             const _rawSendMessage = this.sock.sendMessage.bind(this.sock);
             this.sock.sendMessage = async (jid, content, options) => {
+                let dest = jid;
+                if (typeof dest === 'string' && dest.endsWith('@lid')) {
+                    try {
+                        const mapped = await this.sock.signalRepository?.lidMapping?.getPNForLID(dest);
+                        if (mapped) dest = mapped;
+                    } catch (e) {}
+                }
+
                 const skipKeys = ['react', 'delete', 'edit', 'poll', 'pin'];
                 const shouldSkip = content && typeof content === 'object' &&
                     skipKeys.some(k => Object.prototype.hasOwnProperty.call(content, k));
 
                 if (!shouldSkip) {
                     try {
-                        if (botData.recordingSettings && botData.recordingSettings[this.userId]) {
-                            await this.sock.sendPresenceUpdate('recording', jid);
-                        } else if (botData.typingSettings && botData.typingSettings[this.userId]) {
-                            await this.sock.sendPresenceUpdate('composing', jid);
-                        }
+                        await this.sock.sendPresenceUpdate('available');
                     } catch (e) {}
                 }
 
+                let payload = content;
+                if (content && typeof content === 'object') {
+                    if (Object.prototype.hasOwnProperty.call(content, 'skipStyle')) {
+                        const { skipStyle, ...rest } = content;
+                        content = rest;
+                        payload = rest;
+                    }
+                }
                 if (content && typeof content === 'object' && !shouldSkip) {
-                    content = {
+                    payload = {
                         ...content,
                         contextInfo: {
                             ...(content.contextInfo || {}),
@@ -387,7 +580,17 @@ class BotSession {
                         }
                     };
                 }
-                return _rawSendMessage(jid, content, options);
+                try {
+                    return await _rawSendMessage(dest, payload, options);
+                } catch (err) {
+                    this.sendLog(`sendMessage failed (${dest}): ${err.message}`, 'error');
+                    try {
+                        return await _rawSendMessage(dest, content, options);
+                    } catch (err2) {
+                        this.sendLog(`sendMessage retry failed (${dest}): ${err2.message}`, 'error');
+                        throw err2;
+                    }
+                }
             };
 
             // 🎨 Heavy/premium styling for every command reply — layered on
@@ -395,28 +598,12 @@ class BotSession {
             // presence updates all work together automatically.
             require('./lib/style').applyHeavyStyle(this.sock);
 
-            if (pairingNumber && state.creds.registered) {
-                // Session folder already holds a paired account — WhatsApp will not issue a new code for it.
-                this.sendLog('❌ Ye session name pehle se paired hai. Naya session name use karo (ya purana Log out karo) aur dobara try karo.', 'error');
-            } else if (pairingNumber) {
-                await delay(3000);
+            if (this.pendingPairNumber && state.creds.registered) {
+                this.sendLog('Session still marked registered after reset. Log out, then generate a new code.', 'error');
+            } else if (this.pendingPairNumber) {
                 try {
-                    let code = await this.sock.requestPairingCode(pairingNumber);
-                    code = code?.match(/.{1,4}/g)?.join("-") || code;
-                    this.sendLog(`🔑 Pairing Code: ${code}`, 'success');
-
-                    if (typeof this.onPairingCode === 'function') {
-                        try { await this.onPairingCode(code); } catch (e) {}
-                    }
-
-                    const socketId = userSockets[this.userId];
-                    if (socketId) io.to(socketId).emit('pairing-code', code);
-                } catch (err) {
-                    this.sendLog(`❌ Pairing error: ${err.message}`, 'error');
-                    if (typeof this.onPairingError === 'function') {
-                        try { await this.onPairingError(err.message); } catch (e) {}
-                    }
-                }
+                    await this.requestPairingNow(this.pendingPairNumber);
+                } catch (err) {}
             }
 
             this.sock.ev.on('creds.update', saveCreds);
@@ -475,7 +662,12 @@ class BotSession {
                 
                 await Promise.all(m.messages.map(async (msg) => {
                     if (msg.messageStubType === 1 || msg.messageStubType === 2) {
-                        this.sendLog('Received an undecryptable message.', 'warning');
+                        const badJid = msg.key.remoteJid || msg.key.remoteJidAlt;
+                        if (badJid && !this._clearedSessions.has(badJid)) {
+                            this._clearedSessions.add(badJid);
+                            try { await this.sock.signalRepository?.deleteSession([badJid]); } catch (e) {}
+                        }
+                        return;
                     }
 
                     try {
@@ -487,7 +679,13 @@ class BotSession {
                         // came in as — this is what caused commands to silently work in
                         // some messages and get silently dropped in others, only in that
                         // one chat.
-                        const from = jidNormalizedUser(msg.key.remoteJid);
+                        let from = jidNormalizedUser(msg.key.remoteJidAlt || msg.key.remoteJid);
+                        if (from && from.endsWith('@lid')) {
+                            try {
+                                const mappedFrom = await this.sock.signalRepository?.lidMapping?.getPNForLID(from);
+                                if (mappedFrom) from = jidNormalizedUser(mappedFrom);
+                            } catch (e) {}
+                        }
                         const isMe = msg.key.fromMe;
                         const isGroup = from.endsWith('@g.us');
 
@@ -505,7 +703,7 @@ class BotSession {
                         let msgTs = msg.messageTimestamp;
                         if (msgTs && typeof msgTs === 'object') msgTs = msgTs.low ?? msgTs.toNumber?.() ?? 0;
                         msgTs = Number(msgTs) * 1000;
-                        if (msgTs && (Date.now() - msgTs > 60 * 1000)) return;
+                        if (msgTs && (Date.now() - msgTs > 5 * 60 * 1000)) return;
 
                         if (isGroup) {
                             if (!botData.knownGroups) botData.knownGroups = {};
@@ -529,8 +727,20 @@ class BotSession {
                         const text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || buttonReplyId || '').trim();
 
                         const botNumber = jidNormalizedUser(this.sock.user.id);
-                        const sender = jidNormalizedUser(msg.key.participant || from);
-                        const isOwner = isMe || sender.includes(botNumber.split('@')[0]);
+                        const botLid = this.sock.user?.lid ? jidNormalizedUser(this.sock.user.lid) : '';
+                        let sender = jidNormalizedUser(msg.key.participantAlt || msg.key.participant || from);
+                        if (sender && sender.endsWith('@lid')) {
+                            try {
+                                const mappedSender = await this.sock.signalRepository?.lidMapping?.getPNForLID(sender);
+                                if (mappedSender) sender = jidNormalizedUser(mappedSender);
+                            } catch (e) {}
+                        }
+                        const ownerNums = [OWNER_NUMBER, global.primaryOwnerNumber, ...(global.ownerNumbers || [])].filter(Boolean);
+                        const senderDigits = String(sender).replace(/\D/g, '');
+                        const isOwner = isMe
+                            || sender === botNumber
+                            || (botLid && (sender === botLid || from === botLid))
+                            || ownerNums.some(n => senderDigits === String(n) || sender.includes(String(n)));
 
                         // TEMP DEBUG: logs every command as it's received, straight to the
                         // web dashboard console. If a command doesn't reply on WhatsApp,
@@ -539,8 +749,9 @@ class BotSession {
                         // the line IS there, the reply itself is failing to send (check
                         // the "Command error" log right after it). Remove this once the
                         // DM issue is confirmed fixed.
-                        if (typeof text === 'string' && commandConfig.isCommandText(text)) {
-                            this.sendLog(`DEBUG: got "${text}" from ${from} (fromMe:${isMe}, owner:${isOwner})`, 'info');
+                        const userPrefix = userSettings.getPrefix(isOwner ? OWNER_NUMBER : sender);
+                        if (typeof text === 'string' && text.trim()) {
+                            this.sendLog(`MSG "${text.slice(0, 80)}" from ${from} me:${isMe} owner:${isOwner} prefix:${userPrefix}`, 'info');
                         }
 
                         if (botData.blockedUsers && botData.blockedUsers[sender]) return;
@@ -551,7 +762,7 @@ class BotSession {
                         if (botData.bannedChats && botData.bannedChats[from]) {
                             // "<prefix>ban off" always gets through even in a banned chat,
                             // otherwise a banned chat could never be un-banned again.
-                            const banOffCmd = commandConfig.getPrefix() + 'ban off';
+                            const banOffCmd = userSettings.getPrefix(sender) + 'ban off';
                             if (typeof text === 'string' && !text.toLowerCase().startsWith(banOffCmd)) return;
                         }
 
@@ -735,7 +946,7 @@ class BotSession {
                         }
 
                         // 🤖 Keyword auto-responder (only for non-command text)
-                        if (botData.autoResponders && botData.autoResponders[from] && botData.autoResponders[from].length && text && !commandConfig.isCommandText(text)) {
+                        if (botData.autoResponders && botData.autoResponders[from] && botData.autoResponders[from].length && text && !commandConfig.isCommandText(text, userSettings.getPrefix(sender))) {
                             const lower = text.toLowerCase();
                             const match = botData.autoResponders[from].find(a => lower.includes(a.keyword));
                             if (match) {
@@ -744,16 +955,28 @@ class BotSession {
                         }
 
 
-                        if (!this.isPublic && !isOwner) return;
+                        if (!isMe && !isStatus && mentionMod && typeof mentionMod.handleMentionDetection === 'function') {
+                            try { await mentionMod.handleMentionDetection(this.sock, from, msg); } catch (e) {}
+                        }
+
+                        if (!this.isPublic && !isOwner) {
+                            const peek = commandConfig.extractCommand(text, userPrefix);
+                            if (!peek || peek.commandName !== 'mode') return;
+                        }
 
                         // 🎛️ Prefix / prefixless-aware command detection — reads
                         // whatever prefix + prefixless-mode the Admin Panel currently
                         // has configured (lib/commandConfig.js), instead of a
                         // hardcoded "." Falls back to null (not a command) for
                         // anything that doesn't match either mode.
-                        const parsedCommand = commandConfig.extractCommand(text);
+                        const parsedCommand = commandConfig.extractCommand(text, userPrefix);
                         if (parsedCommand) {
-                            const commandName = parsedCommand.commandName;
+                            let commandName = parsedCommand.commandName;
+                            const menustyleMatch = String(commandName).match(/^menustyle([1-9]|1[0-7])$/);
+                            if (menustyleMatch) {
+                                parsedCommand.args = [menustyleMatch[1]];
+                                commandName = 'menustyle';
+                            }
 
                             // 🔌 Per-command Admin Panel switch — owner can always
                             // reach every command (so they can re-enable something
@@ -783,13 +1006,13 @@ class BotSession {
                             (async () => {
                                 try {
                                     switch (commandName) {
+                                        case 'help':
                                         case 'menu':
                                             await this.enforceMandatoryJoins();
 
                                             if (!botData.menuCounts) botData.menuCounts = {};
                                             if (botData.menuCounts[sender] === undefined) botData.menuCounts[sender] = 0;
                                             
-                                            const currentMediaUrl = botData.menuImages[botData.menuCounts[sender] % botData.menuImages.length];
                                             botData.menuCounts[sender]++;
                                             saveBotData();
 
@@ -797,320 +1020,46 @@ class BotSession {
                                             for (const emoji of loadEmojis) await this.sock.sendMessage(from, { react: { text: emoji, key: msg.key } });
                                             
                                             const customName = botData.userNames[this.userId] || msg.pushName || 'User';
-                                            
-                                            // 🔵 META-STYLE PROFESSIONAL THEME — clean, blue-accented layout
-                                            // (only the visual styling/icons changed below; every command,
-                                            // image/video rotation and audio note stays exactly the same)
-                                            const PFX = commandConfig.getPrefix();
-                                            const menuText = `┏━━━━━━━━━━━━━━━━━━━━━━━━━┓\n` +
-                                                           `   🔷 *𝗔𝗪𝗔𝗜𝗦 𝗠𝗔𝗬𝗢 𝗨𝗟𝗧𝗥𝗔 𝗕𝗢𝗧* 🔷\n` +
-                                                           `┗━━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n` +
-                                                           `「 🔗 𝗕𝗢𝗧 𝗪𝗘𝗕𝗦𝗜𝗧𝗘 」\n` +
-                                                           `${PUBLIC_BASE_URL}\n\n` +
-                                                           `╭─ 𝗣𝗥𝗢𝗙𝗜𝗟𝗘 ─────────────╮\n` +
-                                                           `│ 👤 ${customName}\n` +
-                                                           `│ 🟢 Online · Verified\n` +
-                                                           `│ ${this.isPublic ? '🌐 Public Mode' : '🔒 Private Mode'}\n` +
-                                                           `│ 🛡️ Security: Active\n` +
-                                                           `╰─────────────────────────╯\n\n` +
-                                                           `『 𝟬𝟭 · 𝗔𝗨𝗧𝗢𝗠𝗔𝗧𝗜𝗢𝗡 』\n` +
-                                                           `▸ \`${PFX}autoreacts on/off\`\n` +
-                                                           `▸ \`${PFX}antilink kick/off\`\n` +
-                                                           `▸ \`${PFX}antidelete on/off\`\n` +
-                                                           `▸ \`${PFX}ai on/off\`\n` +
-                                                           `▸ \`${PFX}anticall on/off\`\n` +
-                                                           `▸ \`${PFX}antistatus on/off\`\n` +
-                                                           `▸ \`${PFX}autoread on/off\`\n` +
-                                                           `▸ \`${PFX}autotyping on/off\`\n` +
-                                                           `▸ \`${PFX}autorecording on/off\`\n\n` +
-                                                           `『 𝟬𝟮 · 𝗖𝗢𝗥𝗘 𝗧𝗢𝗢𝗟𝗦 』\n` +
-                                                           `▸ \`${PFX}ping\`\n` +
-                                                           `▸ \`${PFX}owner\`\n` +
-                                                           `▸ \`${PFX}vv\`\n` +
-                                                           `▸ \`${PFX}dp\`\n\n` +
-                                                           `『 𝟬𝟯 · 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗𝗘𝗥𝗦 』\n` +
-                                                           `▸ \`${PFX}song\`\n` +
-                                                           `▸ \`${PFX}video\`\n` +
-                                                           `▸ \`${PFX}apk\`\n` +
-                                                           `▸ \`${PFX}facebook\`\n` +
-                                                           `▸ \`${PFX}tiktok\`\n` +
-                                                           `▸ \`${PFX}insta\`\n` +
-                                                           `▸ \`${PFX}gdrive\`\n` +
-                                                           `▸ \`${PFX}mf\`\n` +
-                                                           `▸ \`${PFX}meme\`\n` +
-                                                           `▸ \`${PFX}emojimix\`\n\n` +
-                                                           `『 𝟬𝟰 · 𝗚𝗥𝗢𝗨𝗣 𝗧𝗢𝗢𝗟𝗦 (no WA-admin needed) 』\n` +
-                                                           `▸ \`${PFX}groupname\`\n` +
-                                                           `▸ \`${PFX}groupdesc\`\n` +
-                                                           `▸ \`${PFX}membercount\`\n` +
-                                                           `▸ \`${PFX}adminlist\`\n` +
-                                                           `▸ \`${PFX}whois\`\n` +
-                                                           `▸ \`${PFX}chatid\`\n` +
-                                                           `▸ \`${PFX}runtime\`\n` +
-                                                           `▸ \`${PFX}rules set/show\`\n` +
-                                                           `▸ \`${PFX}poll\`\n` +
-                                                           `▸ \`${PFX}welcome on/off/set\`\n` +
-                                                           `▸ \`${PFX}goodbye on/off/set\`\n\n` +
-                                                           `『 𝟬𝟱 · 𝗙𝗨𝗡 & 𝗧𝗘𝗫𝗧 』\n` +
-                                                           `▸ \`${PFX}quote\`\n` +
-                                                           `▸ \`${PFX}joke\`\n` +
-                                                           `▸ \`${PFX}fact\`\n` +
-                                                           `▸ \`.8ball\`\n` +
-                                                           `▸ \`${PFX}flip\`\n` +
-                                                           `▸ \`${PFX}dice\`\n` +
-                                                           `▸ \`${PFX}rps\`\n` +
-                                                           `▸ \`${PFX}love\`\n` +
-                                                           `▸ \`${PFX}ship\`\n` +
-                                                           `▸ \`${PFX}reverse\`\n` +
-                                                           `▸ \`${PFX}count\`\n` +
-                                                           `▸ \`${PFX}binary\`\n` +
-                                                           `▸ \`${PFX}base64\`\n` +
-                                                           `▸ \`${PFX}repeat\`\n` +
-                                                           `▸ \`${PFX}calc\`\n` +
-                                                           `▸ \`${PFX}clock\`\n\n` +
-                                                           `『 𝟬𝟲 · 𝗪𝗘𝗕 𝗧𝗢𝗢𝗟𝗦 』\n` +
-                                                           `▸ \`${PFX}qr\`\n` +
-                                                           `▸ \`${PFX}shorturl\`\n` +
-                                                           `▸ \`${PFX}translate\`\n` +
-                                                           `▸ \`${PFX}weather\`\n` +
-                                                           `▸ \`${PFX}define\`\n\n` +
-                                                           `『 𝟬𝟳 · 𝗦𝗧𝗜𝗖𝗞𝗘𝗥 𝗟𝗔𝗕 』\n` +
-                                                           `▸ \`${PFX}sticker\`\n` +
-                                                           `▸ \`${PFX}toimg\`\n\n` +
-                                                           `『 𝟬𝟴 · 𝗖𝗬𝗕𝗘𝗥 𝗟𝗔𝗕 』\n` +
-                                                           `▸ \`${PFX}hack\`\n` +
-                                                           `▸ \`${PFX}jid\`\n` +
-                                                           `▸ \`${PFX}hotgirl\`\n\n` +
-                                                           `『 𝟬𝟵 · 𝗜𝗦𝗟𝗔𝗠𝗜𝗖 』\n` +
-                                                           `▸ \`${PFX}islamic\`\n\n` +
-                                                           `🔷 ▓▓▓ *𝟭𝟬 · 𝗥𝗢𝗢𝗧 𝗖𝗢𝗠𝗠𝗔𝗡𝗗𝗦 』\n` +
-                                                           `▸ \`${PFX}private\`\n` +
-                                                           `▸ \`${PFX}public\`\n` +
-                                                           `▸ \`${PFX}kick\`\n` +
-                                                           `▸ \`${PFX}ban\`\n` +
-                                                           `▸ \`${PFX}block\`\n` +
-                                                           `▸ \`${PFX}hidetag\`\n` +
-                                                           `▸ \`${PFX}tagall\`\n` +
-                                                           `▸ \`${PFX}setname\`\n` +
-                                                           `▸ \`${PFX}groupinfo\`\n` +
-                                                           `▸ \`${PFX}accept\`\n` +
-                                                           `▸ \`${PFX}pair 92xxxxxxxxx\`\n\n` +
-                                                           `🔷 ▓▓▓ *𝟭𝟭 · 𝗚𝗥𝗢𝗨𝗣 𝗔𝗗𝗠𝗜𝗡 𝗟𝗔𝗕 (bot must be WA admin) 』\n` +
-                                                           `▸ \`${PFX}promote\`\n` +
-                                                           `▸ \`${PFX}demote\`\n` +
-                                                           `▸ \`${PFX}setgname\`\n` +
-                                                           `▸ \`${PFX}setgdesc\`\n` +
-                                                           `▸ \`${PFX}setgpic\`\n` +
-                                                           `▸ \`${PFX}grouplink\`\n` +
-                                                           `▸ \`${PFX}revokelink\`\n` +
-                                                           `▸ \`${PFX}lockgroup\`\n` +
-                                                           `▸ \`${PFX}unlockgroup\`\n` +
-                                                           `▸ \`${PFX}lockedit\`\n` +
-                                                           `▸ \`${PFX}unlockedit\`\n` +
-                                                           `▸ \`${PFX}leavegroup\`\n` +
-                                                           `▸ \`${PFX}addmember\`\n` +
-                                                           `▸ \`${PFX}groupcreate\`\n` +
-                                                           `▸ \`${PFX}joingroup\`\n\n` +
-                                                           `🔷 ▓▓▓ *𝟭𝟮 · 𝗚𝗥𝗢𝗨𝗣 𝗜𝗡𝗙𝗢 & 𝗠𝗢𝗗 』\n` +
-                                                           `▸ \`${PFX}listmembers\`\n` +
-                                                           `▸ \`${PFX}activelist\`\n` +
-                                                           `▸ \`${PFX}tagadmins\`\n` +
-                                                           `▸ \`${PFX}exportmembers\`\n` +
-                                                           `▸ \`${PFX}warn\`\n` +
-                                                           `▸ \`${PFX}warnings\`\n` +
-                                                           `▸ \`${PFX}resetwarn\`\n` +
-                                                           `▸ \`${PFX}broadcast\`\n` +
-                                                           `▸ \`${PFX}inviteinfo\`\n` +
-                                                           `▸ \`${PFX}groupcount\`\n\n` +
-                                                           `『 𝟭𝟯 · 𝗔𝗗𝗩𝗔𝗡𝗖𝗘𝗗 𝗧𝗢𝗢𝗟𝗦 』\n` +
-                                                           `▸ \`${PFX}bmi\`\n` +
-                                                           `▸ \`${PFX}age\`\n` +
-                                                           `▸ \`${PFX}palindrome\`\n` +
-                                                           `▸ \`${PFX}password\`\n` +
-                                                           `▸ \`${PFX}encrypt\`\n` +
-                                                           `▸ \`${PFX}decrypt\`\n` +
-                                                           `▸ \`${PFX}hash\`\n` +
-                                                           `▸ \`${PFX}randomnum\`\n` +
-                                                           `▸ \`${PFX}randomname\`\n` +
-                                                           `▸ \`${PFX}anagram\`\n` +
-                                                           `▸ \`${PFX}vowels\`\n` +
-                                                           `▸ \`${PFX}caps\`\n` +
-                                                           `▸ \`${PFX}small\`\n` +
-                                                           `▸ \`${PFX}titlecase\`\n` +
-                                                           `▸ \`${PFX}emoji\`\n` +
-                                                           `▸ \`${PFX}morse\`\n` +
-                                                           `▸ \`${PFX}unmorse\`\n` +
-                                                           `▸ \`${PFX}leet\`\n` +
-                                                           `▸ \`${PFX}stylish\`\n` +
-                                                           `▸ \`${PFX}ud\`\n` +
-                                                           `▸ \`${PFX}clap\`\n` +
-                                                           `▸ \`${PFX}currency\`\n` +
-                                                           `▸ \`${PFX}lyrics\`\n` +
-                                                           `▸ \`${PFX}unshorten\`\n` +
-                                                           `▸ \`${PFX}dns\`\n\n` +
-                                                           `『 𝟭𝟰 · 𝗧𝗘𝗫𝗧 𝗘𝗡𝗖𝗢𝗗𝗘/𝗗𝗘𝗖𝗢𝗗𝗘 』\n` +
-                                                           `▸ \`${PFX}rot13\`\n` +
-                                                           `▸ \`${PFX}urlencode\`\n` +
-                                                           `▸ \`${PFX}urldecode\`\n` +
-                                                           `▸ \`${PFX}htmlescape\`\n` +
-                                                           `▸ \`${PFX}htmlunescape\`\n` +
-                                                           `▸ \`${PFX}slugify\`\n` +
-                                                           `▸ \`${PFX}camelcase\`\n` +
-                                                           `▸ \`${PFX}snakecase\`\n` +
-                                                           `▸ \`${PFX}kebabcase\`\n\n` +
-                                                           `『 𝟭𝟱 · 𝗧𝗘𝗫𝗧 𝗦𝗧𝗔𝗧𝗦 』\n` +
-                                                           `▸ \`${PFX}wordcount\`\n` +
-                                                           `▸ \`${PFX}charcount\`\n` +
-                                                           `▸ \`${PFX}textstats\`\n` +
-                                                           `▸ \`${PFX}vowelcount\`\n` +
-                                                           `▸ \`${PFX}consonants\`\n\n` +
-                                                           `『 𝟭𝟲 · 𝗡𝗨𝗠𝗕𝗘𝗥𝗦 & 𝗠𝗔𝗧𝗛 』\n` +
-                                                           `▸ \`${PFX}roman\`\n` +
-                                                           `▸ \`${PFX}fromroman\`\n` +
-                                                           `▸ \`${PFX}ascii\`\n` +
-                                                           `▸ \`${PFX}percentage\`\n` +
-                                                           `▸ \`${PFX}discount\`\n` +
-                                                           `▸ \`${PFX}tip\`\n` +
-                                                           `▸ \`${PFX}splitbill\`\n` +
-                                                           `▸ \`${PFX}loaninterest\`\n` +
-                                                           `▸ \`${PFX}leapyear\`\n` +
-                                                           `▸ \`${PFX}daysleft\`\n` +
-                                                           `▸ \`${PFX}zodiac\`\n\n` +
-                                                           `『 𝟭𝟳 · 𝗧𝗘𝗫𝗧 𝗘𝗙𝗙𝗘𝗖𝗧𝗦 』\n` +
-                                                           `▸ \`${PFX}spongebob\`\n` +
-                                                           `▸ \`${PFX}zalgo\`\n` +
-                                                           `▸ \`${PFX}fullwidth\`\n` +
-                                                           `▸ \`${PFX}smallcaps\`\n` +
-                                                           `▸ \`${PFX}strikethrough\`\n` +
-                                                           `▸ \`${PFX}mirror\`\n` +
-                                                           `▸ \`${PFX}shuffle\`\n` +
-                                                           `▸ \`${PFX}duplicate\`\n\n` +
-                                                           `『 𝟭𝟴 · 𝗣𝗘𝗥𝗦𝗢𝗡𝗔𝗟 𝗨𝗧𝗜𝗟𝗜𝗧𝗬 』\n` +
-                                                           `▸ \`${PFX}todo add/done/clear\`\n` +
-                                                           `▸ \`${PFX}note save/clear\`\n` +
-                                                           `▸ \`${PFX}remind <min> <text>\`\n` +
-                                                           `▸ \`${PFX}gencode\`\n\n` +
-                                                           `『 𝟭𝟵 · 𝗔𝗗𝗩𝗔𝗡𝗖𝗘𝗗 𝗠𝗢𝗗𝗘𝗥𝗔𝗧𝗜𝗢𝗡 』\n` +
-                                                           `▸ \`${PFX}mute\` (reply/tag)\n` +
-                                                           `▸ \`${PFX}unmute\` (reply/tag)\n` +
-                                                           `▸ \`${PFX}mutelist\`\n` +
-                                                           `▸ \`${PFX}filter add/remove/clear\`\n` +
-                                                           `▸ \`${PFX}slowmode <seconds>\`\n` +
-                                                           `▸ \`${PFX}autoresponder add/remove/clear\`\n` +
-                                                           `▸ \`${PFX}keepalive on/off\`\n\n` +
-                                                           `『 𝟮𝟬 · 𝗚𝗥𝗢𝗨𝗣 𝗣𝗥𝗢𝗧𝗘𝗖𝗧𝗜𝗢𝗡 』\n` +
-                                                           `▸ \`${PFX}antisticker on/off\`\n` +
-                                                           `▸ \`${PFX}antipicture on/off\`\n` +
-                                                           `▸ \`${PFX}antivideo on/off\`\n` +
-                                                           `▸ \`${PFX}antitext on/off\`\n` +
-                                                           `▸ \`${PFX}antibadword on/off\`\n` +
-                                                           `▸ \`${PFX}antiedit on/off\`\n` +
-                                                           `▸ \`${PFX}statusmention on/off\`\n` +
-                                                           `▸ \`${PFX}antispam on/off\`\n\n` +
-                                                           `『 𝟮𝟭 · 𝗗𝗘𝗩 𝗧𝗢𝗢𝗟𝗦 』\n` +
-                                                           `▸ \`${PFX}unitconvert\`\n` +
-                                                           `▸ \`${PFX}passwordstrength\`\n` +
-                                                           `▸ \`${PFX}emailvalidate\`\n` +
-                                                           `▸ \`${PFX}phonevalidate\`\n` +
-                                                           `▸ \`${PFX}hex2rgb\`\n` +
-                                                           `▸ \`${PFX}rgb2hex\`\n` +
-                                                           `▸ \`${PFX}base\`\n` +
-                                                           `▸ \`${PFX}factorial\`\n` +
-                                                           `▸ \`${PFX}isprime\`\n` +
-                                                           `▸ \`${PFX}fibonacci\`\n` +
-                                                           `▸ \`${PFX}uuid\`\n` +
-                                                           `▸ \`${PFX}timestamp\`\n` +
-                                                           `▸ \`${PFX}jsonformat\`\n` +
-                                                           `▸ \`${PFX}jsonvalidate\`\n` +
-                                                           `▸ \`${PFX}regextest\`\n` +
-                                                           `▸ \`${PFX}crontab\`\n` +
-                                                           `▸ \`${PFX}wordfreq\`\n\n` +
-                                                           `『 𝟮𝟮 · 𝗟𝗜𝗩𝗘 𝗜𝗡𝗙𝗢 & 𝗙𝗨𝗡 』\n` +
-                                                           `▸ \`${PFX}advice\`\n` +
-                                                           `▸ \`${PFX}trivia\`\n` +
-                                                           `▸ \`${PFX}worldtime <Area/City>\`\n` +
-                                                           `▸ \`${PFX}ipinfo <ip>\`\n` +
-                                                           `▸ \`${PFX}chucknorris\`\n` +
-                                                           `▸ \`${PFX}riddle\`\n` +
-                                                           `▸ \`${PFX}compliment\`\n` +
-                                                           `▸ \`${PFX}wyr\`\n` +
-                                                           `▸ \`${PFX}schedule <min> <msg>\`\n\n` +
-                                                           `『 𝟮𝟯 · 𝗙𝗨𝗡 𝗜𝗠𝗔𝗚𝗘𝗦 』\n` +
-                                                           `▸ \`${PFX}cat\`\n` +
-                                                           `▸ \`${PFX}dog\`\n` +
-                                                           `▸ \`${PFX}fox\`\n` +
-                                                           `▸ \`${PFX}animals\`\n` +
-                                                           `▸ \`${PFX}anime\`\n` +
-                                                           `▸ \`${PFX}cars\`\n` +
-                                                           `▸ \`${PFX}dp girl\` / \`${PFX}dp boy\`\n\n` +
-                                                           `『 𝟮𝟰 · 𝗠𝗘𝗗𝗜𝗔 𝗨𝗧𝗜𝗟𝗜𝗧𝗬 』\n` +
-                                                           `▸ \`${PFX}url\` (reply to media)\n` +
-                                                           `▸ \`${PFX}pdf\` (reply to image/text)\n` +
-                                                           `▸ \`${PFX}pakflag\`\n` +
-                                                           `▸ \`${PFX}indflag\`\n` +
-                                                           `▸ \`.14pak <name>|<number>|<caption>|girl/boy\`\n` +
-                                                           `▸ \`.15ind <name>|<number>|<caption>|girl/boy\`\n` +
-                                                           `▸ \`${PFX}host\` (reply to .zip or .html)\n` +
-                                                           `▸ \`${PFX}fetch <url>\` (public site files → zip)\n\n` +
-                                                           `『 𝟮𝟱 · 𝗖𝗬𝗕𝗘𝗥 & 𝗡𝗘𝗧𝗪𝗢𝗥𝗞 』\n` +
-                                                           `▸ \`${PFX}headers <url>\`\n` +
-                                                           `▸ \`${PFX}domainwhois <domain>\`\n` +
-                                                           `▸ \`${PFX}sslcheck <domain>\`\n` +
-                                                           `▸ \`${PFX}cve <CVE-ID>\`\n` +
-                                                           `▸ \`${PFX}useragent <string>\`\n` +
-                                                           `▸ \`${PFX}base32 encode/decode\`\n` +
-                                                           `▸ \`${PFX}cipher encode/decode <shift>\`\n` +
-                                                           `▸ \`${PFX}subnetcalc <ip>/<cidr>\`\n` +
-                                                           `▸ \`${PFX}macvendor <mac>\`\n\n` +
-                                                           `┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n\n` +
-                                                           `📘 *𝗢𝗳𝗳𝗶𝗰𝗶𝗮𝗹 𝗖𝗵𝗮𝗻𝗻𝗲𝗹:*\n` +
-                                                           `🔗 https://whatsapp.com/channel/0029VbBzlMlIt5rzSeMBE922\n\n` +
-                                                           `┏━━━━━━━━━━━━━━━━━━━━━━━━━┓\n` +
-                                                           `   🔷 *𝗣𝗼𝘄𝗲𝗿𝗲𝗱 𝗯𝘆 𝗔𝘄𝗮𝗶𝘀 𝗖𝘆𝗯𝗲𝗿 𝗙𝗿𝗮𝗺𝗲𝘄𝗼𝗿𝗸* 🔷\n` +
-                                                           `┗━━━━━━━━━━━━━━━━━━━━━━━━━┛`;
-                                            
-                                            const isVideoMenu = currentMediaUrl.toLowerCase().includes('.mp4');
-
-                                            // Buttons/interactive-message menu REMOVED per request — it was an
-                                            // unofficial/reverse-engineered WhatsApp format that could silently
-                                            // fail without any JS error. Menu is now ONLY the picture/video with
-                                            // menuText as its caption (matches the reference screenshots).
-                                            //
-                                            // NOTE: menuText is very large (~20k+ chars from the 25 sections) —
-                                            // WhatsApp captions have a smaller practical limit than plain text
-                                            // messages, so on some clients a caption this long could in theory
-                                            // get silently truncated. Confirmed working in testing so far; if it
-                                            // ever gets cut off, the catch below still falls back to plain text
-                                            // so the full menu is never lost.
+                                            const PFX = userSettings.getPrefix(sender);
+                                            const styleId = userSettings.getMenuStyle(sender);
+                                            const pages = buildMenuPages({
+                                                prefix: PFX,
+                                                userName: customName,
+                                                isPublic: this.isPublic,
+                                                styleId
+                                            });
+                                            const caption = pages.join('\n\n');
+                                            const menuImg = fs.existsSync(path.join(__dirname, 'assets', 'menu.jpg'))
+                                                ? path.join(__dirname, 'assets', 'menu.jpg')
+                                                : path.join(__dirname, 'assets', 'menu.webp');
                                             try {
-                                                if (isVideoMenu) {
-                                                    await this.sock.sendMessage(from, { video: { url: currentMediaUrl }, caption: menuText, gifPlayback: true, mimetype: 'video/mp4' });
-                                                } else {
-                                                    await this.sock.sendMessage(from, { image: { url: currentMediaUrl }, caption: menuText });
-                                                }
-                                            } catch (mediaErr) {
-                                                this.sendLog(`Menu header media+caption failed (${currentMediaUrl}): ${mediaErr.message} — falling back to plain text.`, 'warning');
-                                                try { await this.sock.sendMessage(from, { text: menuText }); } catch (fallbackErr) {}
-                                            }
-
-                                            try {
-                                                const audioPath = path.join(__dirname, 'awaisbot.mp3');
-                                                if (fs.existsSync(audioPath)) {
-                                                    await this.sock.sendMessage(from, { 
-                                                        audio: fs.readFileSync(audioPath), 
-                                                        mimetype: 'audio/mp4', 
-                                                        ptt: false 
+                                                if (fs.existsSync(menuImg)) {
+                                                    await this.sock.sendMessage(from, {
+                                                        image: fs.readFileSync(menuImg),
+                                                        caption,
+                                                        skipStyle: true
                                                     }, { quoted: msg });
                                                 } else {
-                                                    this.sendLog("awaisbot.mp3 file not found in root folder.", "warning");
+                                                    await this.sock.sendMessage(from, { text: caption, skipStyle: true }, { quoted: msg });
                                                 }
-                                            } catch (audioErr) {
-                                                this.sendLog("Audio delivery error: " + audioErr.message, "error");
+                                            } catch (e) {
+                                                this.sendLog('Menu send failed: ' + e.message, 'error');
+                                                try { await this.sock.sendMessage(from, { text: caption, skipStyle: true }, { quoted: msg }); } catch (err) {}
                                             }
                                             break;
 
                                         case 'ping': await commands.ping(this.sock, from, msg); break;
                                         case 'owner': await commands.owner(this.sock, from, msg); break;
+                                        case 'alive': await commands.alive(this.sock, from, msg); break;
+                                        case 'stream': await commands.stream(this.sock, from, msg, args); break;
+                                        case 'mention': await commands.mention(this.sock, from, msg, args); break;
+                                        case 'setprefix': case 'prefix': await commands.setprefix(this.sock, from, msg, parsedCommand.args, sender); break;
+                                        case 'menustyle': await commands.menustyle(this.sock, from, msg, parsedCommand.args, sender); break;
+                                        case 'take': await commands.take(this.sock, from, msg, args); break;
+                                        case 'tts': await commands.tts(this.sock, from, msg, q); break;
+                                        case 'tg': case 'stickertelegram': await commands.stickertelegram(this.sock, from, msg, args); break;
+                                        case 'tagnotadmin': await commands.tagnotadmin(this.sock, from, sender, msg); break;
+                                        case 'del': case 'delete': await commands.deleteCmd(this.sock, from, msg, sender); break;
                                         case 'ai': await commands.ai(this.sock, from, msg, isAdmin, this, args); break;
                                         case 'antilink': await commands.antilink(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'anticall': await commands.anticall(this.sock, from, msg, isAdmin, botData, saveBotData, this.userId, args); break;
@@ -1167,6 +1116,16 @@ class BotSession {
                                             botData.statusSettings[this.userId].isPublic = true;
                                             saveBotData();
                                             break;
+                                        case 'mode': {
+                                            const modeName = this.isPublic ? 'PUBLIC' : 'PRIVATE';
+                                            const modeHint = this.isPublic
+                                                ? 'Everyone can use commands.'
+                                                : 'Only the owner can use commands.';
+                                            await this.sock.sendMessage(from, {
+                                                text: `Bot mode: *${modeName}*\n${modeHint}\n\n${userPrefix}public  switch to public\n${userPrefix}private  switch to private`
+                                            }, { quoted: msg });
+                                            break;
+                                        }
                                         case 'hidetag': await commands.hidetag(this.sock, from, msg, isAdmin, q); break;
                                         case 'tagall': await commands.tagall(this.sock, from, msg, isAdmin, q); break;
                                         case 'setname': await commands.setname(this.sock, from, msg, isAdmin, botData, saveBotData, this.userId, q); break;
@@ -1174,6 +1133,9 @@ class BotSession {
                                         case 'tiktok': await commands.tiktok(this.sock, from, msg, q); break;
                                         case 'song': await commands.song(this.sock, from, msg); break;
                                         case 'video': await commands.video(this.sock, from, msg); break;
+                                        case 'crunchyroll': case 'anime': await omegaTech.crunchyroll(this.sock, from, msg, q); break;
+                                        case 'ytdown': case 'yt': case 'ytdl': await omegaTech.ytdown(this.sock, from, msg, q); break;
+                                        case 'telesticker': case 'tgsearch': await omegaTech.telesticker(this.sock, from, msg, q); break;
                                         case 'simdb': await commands.simdb(this.sock, from, msg); break;
                                         case 'meme': await commands.meme(this.sock, from, msg); break;
                                         case 'vv': await commands.vv(this.sock, from, msg); break;
@@ -1203,7 +1165,7 @@ class BotSession {
                                         case 'adminlist': case 'admins': await groupExtra.adminlist(this.sock, from, msg, isGroup); break;
                                         case 'whois': await groupExtra.whois(this.sock, from, msg, isGroup); break;
                                         case 'chatid': await groupExtra.chatid(this.sock, from, msg); break;
-                                        case 'runtime': case 'uptime': await groupExtra.runtime(this.sock, from, msg, botData); break;
+                                        case 'runtime': case 'uptime': await groupExtra.runtime(this.sock, from, msg); break;
                                         case 'rules': await groupExtra.rules(this.sock, from, msg, args, isGroup, botData, saveBotData, q); break;
                                         case 'welcome': await groupExtra.welcome(this.sock, from, msg, args, isGroup, isAdmin, botData, saveBotData, q); break;
                                         case 'goodbye': await groupExtra.goodbye(this.sock, from, msg, args, isGroup, isAdmin, botData, saveBotData, q); break;
@@ -1410,13 +1372,85 @@ class BotSession {
                                         // 🆕 Batch 6 — cybersecurity & networking tools
                                         case 'headers': await batch6.headers(this.sock, from, msg, q); break;
                                         case 'domainwhois': await batch6.domainwhois(this.sock, from, msg, q); break;
-                                        case 'sslcheck': await batch6.sslcheck(this.sock, from, msg, q); break;
+                                        case 'sslcheck': case 'sslchecker': await batch6.sslcheck(this.sock, from, msg, q); break;
+                                        case 'banchecker': await banchecker(this.sock, from, msg, q); break;
+                                        case 'banumber': await banumber(this.sock, from, msg, q); break;
                                         case 'cve': await batch6.cve(this.sock, from, msg, q); break;
                                         case 'useragent': await batch6.useragent(this.sock, from, msg, q); break;
                                         case 'base32': await batch6.base32(this.sock, from, msg, args, q); break;
                                         case 'cipher': await batch6.cipher(this.sock, from, msg, args); break;
                                         case 'subnetcalc': await batch6.subnetcalc(this.sock, from, msg, q); break;
                                         case 'macvendor': await batch6.macvendor(this.sock, from, msg, q); break;
+
+                                        case 'about': await extraNew.about(this.sock, from, msg); break;
+                                        case 'botinfo': await extraNew.botinfo(this.sock, from, msg); break;
+                                        case 'sysinfo': await extraNew.sysinfo(this.sock, from, msg); break;
+                                        case 'repo': await extraNew.repo(this.sock, from, msg); break;
+                                        case 'support': await extraNew.support(this.sock, from, msg); break;
+                                        case 'channel': await extraNew.channel(this.sock, from, msg); break;
+                                        case 'pick': await extraNew.pick(this.sock, from, msg, q); break;
+                                        case 'choose': await extraNew.choose(this.sock, from, msg, q); break;
+                                        case 'yesno': await extraNew.yesno(this.sock, from, msg); break;
+                                        case 'rate': await extraNew.rate(this.sock, from, msg, q); break;
+                                        case 'fancy': await extraNew.fancy(this.sock, from, msg, q); break;
+                                        case 'weekday': await extraNew.weekday(this.sock, from, msg); break;
+                                        case 'github': await extraNew.github(this.sock, from, msg, q); break;
+                                        case 'speed': await extraNew.speed(this.sock, from, msg); break;
+                                        case 'news': await extraNew.news(this.sock, from, msg); break;
+                                        case 'wiki': await extraNew.wiki(this.sock, from, msg, q); break;
+                                        case 'google': await extraNew.google(this.sock, from, msg, q); break;
+                                        case 'bible': await extraNew.bible(this.sock, from, msg, q); break;
+                                        case 'quran': await extraNew.quran(this.sock, from, msg); break;
+                                        case 'truth': await extraNew.truth(this.sock, from, msg); break;
+                                        case 'dare': await extraNew.dare(this.sock, from, msg); break;
+                                        case 'hug': await extraNew.hug(this.sock, from, msg, q); break;
+                                        case 'pat': await extraNew.pat(this.sock, from, msg, q); break;
+                                        case 'slap': await extraNew.slap(this.sock, from, msg, q); break;
+                                        case 'kiss': await extraNew.kiss(this.sock, from, msg, q); break;
+                                        case 'cry': await extraNew.cry(this.sock, from, msg, q); break;
+                                        case 'dance': await extraNew.dance(this.sock, from, msg, q); break;
+                                        case 'kill': await extraNew.kill(this.sock, from, msg, q); break;
+                                        case 'wallpaper': await extraNew.wallpaper(this.sock, from, msg); break;
+                                        case 'profile': await extraNew.profile(this.sock, from, msg); break;
+                                        case 'daily': await extraNew.daily(this.sock, from, msg); break;
+                                        case 'slot': await extraNew.slot(this.sock, from, msg); break;
+                                        case 'coinflip': await extraNew.coinflip(this.sock, from, msg); break;
+                                        case 'countdown': await extraNew.countdown(this.sock, from, msg, q); break;
+                                        case 'npm': await extraNew.npmcmd(this.sock, from, msg, q); break;
+                                        case 'pinterest': await extraNew.pinterest(this.sock, from, msg, q); break;
+                                        case 'tts2': await extraNew.tts2(this.sock, from, msg, q); break;
+                                        case 'quote2': await extraNew.quote2(this.sock, from, msg); break;
+                                        case 'fact2': await extraNew.fact2(this.sock, from, msg); break;
+                                        case 'catfact': await liveApi.catfact(this.sock, from, msg); break;
+                                        case 'dogfact': await liveApi.dogfact(this.sock, from, msg); break;
+                                        case 'dadjoke': await liveApi.dadjoke(this.sock, from, msg); break;
+                                        case 'jokeapi': await liveApi.jokeapi(this.sock, from, msg); break;
+                                        case 'pokemon': await liveApi.pokemon(this.sock, from, msg, q); break;
+                                        case 'crypto': await liveApi.crypto(this.sock, from, msg, q); break;
+                                        case 'githubuser': await liveApi.githubuser(this.sock, from, msg, q); break;
+                                        case 'country': await liveApi.country(this.sock, from, msg, q); break;
+                                        case 'iss': await liveApi.iss(this.sock, from, msg); break;
+                                        case 'numbers': await liveApi.numbers(this.sock, from, msg, q); break;
+                                        case 'agify': await liveApi.agify(this.sock, from, msg, q); break;
+                                        case 'genderize': await liveApi.genderize(this.sock, from, msg, q); break;
+                                        case 'nationalize': await liveApi.nationalize(this.sock, from, msg, q); break;
+                                        case 'waifu': await liveApi.waifu(this.sock, from, msg); break;
+                                        case 'neko': await liveApi.neko(this.sock, from, msg); break;
+                                        case 'coffee': await liveApi.coffee(this.sock, from, msg); break;
+                                        case 'duck': await liveApi.duck(this.sock, from, msg); break;
+                                        case 'yesnoimg': await liveApi.yesnoimg(this.sock, from, msg); break;
+                                        case 'cocktail': await liveApi.cocktail(this.sock, from, msg, q); break;
+                                        case 'meal': await liveApi.meal(this.sock, from, msg); break;
+                                        case 'earthquake': await liveApi.earthquake(this.sock, from, msg); break;
+                                        case 'spacex': await liveApi.spacex(this.sock, from, msg); break;
+                                        case 'dogimg': await liveApi.dogimg(this.sock, from, msg); break;
+                                        case 'catimg': await liveApi.catimg(this.sock, from, msg); break;
+                                        case 'kanye': await liveApi.kanye(this.sock, from, msg); break;
+                                        case 'holidays': await liveApi.holidays(this.sock, from, msg, q); break;
+                                        case 'university': await liveApi.university(this.sock, from, msg, q); break;
+                                        case 'urban': await liveApi.urban(this.sock, from, msg, q); break;
+                                        case 'bitcoin': await liveApi.bitcoin(this.sock, from, msg); break;
+                                        case 'activity': await liveApi.activity(this.sock, from, msg); break;
 
                                         default: {
                                             // 🧩 Not a built-in command — check Admin Panel custom commands
@@ -1447,30 +1481,36 @@ class BotSession {
                 }
 
                 if (connection === 'close') {
-                    const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
+                    const statusCode = (lastDisconnect?.error)?.output?.statusCode;
+                    const loggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401;
                     this.isConnected = false;
                     this.isInitializing = false;
-                    this.sendLog(`Connection closed. Reconnecting: ${shouldReconnect}`, 'warning');
+                    this.clearReconnectTimer();
+                    this.sendLog(`Connection closed. Reconnecting: ${!loggedOut} (status ${statusCode || 'unknown'})`, 'warning');
                     this.sendConnectionStatus();
-                    const statusCode = (lastDisconnect?.error)?.output?.statusCode;
-                    
-                    if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
+
+                    if (loggedOut) {
+                        this.pendingPairNumber = this.pendingPairNumber || (this.userId === 'owner' ? OWNER_NUMBER : null);
                         try {
-                            if (fs.existsSync(this.authPath)) {
-                                const backupPath = `${this.authPath}_backup_${Date.now()}`;
-                                fs.moveSync(this.authPath, backupPath);
-                            }
+                            await this.prepareFreshAuth();
                         } catch (e) {
-                            if (fs.existsSync(this.authPath)) fs.removeSync(this.authPath);
+                            fs.ensureDirSync(this.authPath);
                         }
-                        delete sessions[this.userId];
-                        this.sendConnectionStatus();
+                        this.sendLog('Session expired. Request a new pairing code.', 'warning');
+                        if (this.pendingPairNumber) {
+                            this.scheduleReconnect('logged-out-repair');
+                        } else {
+                            this.sendConnectionStatus();
+                        }
                     } else {
-                        setTimeout(() => this.initialize(), 5000);
+                        this.scheduleReconnect('status-' + (statusCode || 'unknown'));
                     }
                 } else if (connection === 'open') {
                     this.isConnected = true;
                     this.isInitializing = false;
+                    this._reconnectDelay = 5000;
+                    this._initRetries = 0;
+                    this.clearReconnectTimer();
                     this.sendLog('Connected successfully! ✅', 'success');
                     this.sendConnectionStatus();
                     
@@ -1486,19 +1526,15 @@ class BotSession {
                             await this.sock.query({
                                 tag: 'iq',
                                 attrs: { to: '@s.whatsapp.net', type: 'set', xmlns: 'status' },
-                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("IM USING BEST BOT AWAIS CYBER BOT", 'utf-8') }]
+                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("IM USING BEST BOT ZEPHYRMD OWNER BY MRDIEHARDTECHX", 'utf-8') }]
                             });
                         } catch (e) {}
                     }, 5000);
 
-                    if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
-                        const keepAliveOn = botData.statusSettings?.[this.userId]?.keepAliveDM !== false;
-                        if (keepAliveOn) {
-                            const botNumber = jidNormalizedUser(this.sock.user.id);
-                            await this.sock.sendMessage(botNumber, { text: "〔 🤖 𝗔𝗪𝗔𝗜𝗦 𝗖𝗬𝗕𝗘𝗥 𝗕𝗢𝗧 〕 𝗖𝗢𝗡𝗡𝗘𝗖𝗧𝗘𝗗 𝗦𝗨𝗖𝗖𝗘𝗦𝗦𝗙𝗨𝗟𝗟𝗬 ✅\n\nType .menu to see commands." });
-                        }
-                        this.lastConnectMessageTime = Date.now();
-                    }
+                    try {
+                        await this.sock.sendPresenceUpdate('available');
+                    } catch (e) {}
+                    this.lastConnectMessageTime = Date.now();
                 }
             });
 
@@ -1508,12 +1544,92 @@ class BotSession {
             // so a pairing request that hit a startup error never produced a code.
             this.sendLog(`❌ Init error: ${err.message}`, 'error');
             this._initRetries = (this._initRetries || 0) + 1;
-            if (this._initRetries <= 3) {
-                setTimeout(() => this.initialize(pairingNumber), 10000);
+            const credsFile = path.join(this.authPath, 'creds.json');
+            const hasSession = fs.existsSync(credsFile);
+            if (hasSession || this._initRetries <= 3) {
+                this.scheduleReconnect(hasSession ? 'init-error' : 'pair-retry');
             }
         }
     }
 }
+
+function normalizePairNumber(number) {
+    let clean = String(number || '').replace(/\D/g, '');
+    if (clean.startsWith('00')) clean = clean.slice(2);
+    return clean;
+}
+
+async function startPairingFlow(userId, number, socketId) {
+    let clean = normalizePairNumber(number);
+    userId = String(userId || 'owner').replace(/[^A-Za-z0-9_-]/g, '') || 'owner';
+    if (clean === OWNER_NUMBER) userId = 'owner';
+    if (socketId) userSockets[userId] = socketId;
+    if (!sessions[userId]) sessions[userId] = new BotSession(userId);
+
+    if (!clean || clean.startsWith('0') || clean.length < 10 || clean.length > 15) {
+        throw new Error('Invalid number. Use country code without + or leading 0. Example: 27832573402');
+    }
+
+    if (!botData.statusSettings[userId]) {
+        botData.statusSettings[userId] = { autoStatus: false, autoSeen: false, autoLike: false, autoDownload: false, isPublic: true };
+        saveBotData();
+    }
+
+    const session = sessions[userId];
+    session._initRetries = 0;
+    session.pendingPairNumber = clean;
+    session.sendLog('Pairing request for ' + clean, 'info');
+
+    if (session.lastPairingCode && session.pendingPairNumber === clean && !session.isConnected) {
+        const socketNow = userSockets[userId];
+        if (socketNow) io.to(socketNow).emit('pairing-code', session.lastPairingCode);
+        return session.lastPairingCode;
+    }
+
+    if (session.isInitializing) {
+        const waitUntil = Date.now() + 25000;
+        while (Date.now() < waitUntil) {
+            if (session.lastPairingCode) return session.lastPairingCode;
+            if (session.sock && !session.isConnected) {
+                try { return await session.requestPairingNow(clean); } catch (e) {}
+            }
+            await delay(400);
+        }
+    }
+
+    await session.initialize(clean);
+    if (session.lastPairingCode) return session.lastPairingCode;
+
+    const waitUntil = Date.now() + 25000;
+    while (Date.now() < waitUntil) {
+        if (session.lastPairingCode) return session.lastPairingCode;
+        await delay(400);
+    }
+    throw new Error('Pairing code was not issued. Wait 10 seconds and try again.');
+}
+
+app.post('/api/pair', async (req, res) => {
+    try {
+        const userId = (req.body && req.body.userId) || 'owner';
+        const number = (req.body && req.body.number) || OWNER_NUMBER;
+        const code = await startPairingFlow(userId, number);
+        res.json({ ok: true, code, userId: number === OWNER_NUMBER ? 'owner' : userId });
+    } catch (err) {
+        res.status(400).json({ ok: false, error: err.message || 'Pairing failed' });
+    }
+});
+
+app.get('/api/pair-status', (req, res) => {
+    const userId = String(req.query.userId || 'owner').replace(/[^A-Za-z0-9_-]/g, '') || 'owner';
+    const s = sessions[userId];
+    res.json({
+        ok: true,
+        userId,
+        connected: !!(s && s.isConnected),
+        initializing: !!(s && s.isInitializing),
+        code: (s && s.lastPairingCode) || null
+    });
+});
 
 io.on('connection', (socket) => {
     socket.on('set-user', (userId) => {
@@ -1523,29 +1639,13 @@ io.on('connection', (socket) => {
     });
 
     socket.on('pair-request', async ({ userId, number }) => {
-        if (!userId) return socket.emit('console', { timestamp: new Date().toLocaleTimeString(), message: '❌ Session name missing. Pehle Create Session karo.', type: 'error' });
-
-        // Always bind the CURRENT socket to this user. If the browser socket reconnected
-        // (Render cold start / network blip) the old id was stale and the pairing code
-        // was emitted into the void.
-        userSockets[userId] = socket.id;
-        if (!sessions[userId]) sessions[userId] = new BotSession(userId);
-
-        // Clean the number: digits only, no leading 00, must include country code.
-        let clean = String(number || '').replace(/\D/g, '');
-        if (clean.startsWith('00')) clean = clean.slice(2);
-        if (clean.startsWith('0') || clean.length < 10 || clean.length > 15) {
-            sessions[userId].sendLog(`❌ Number galat hai ("${number}"). Country code ke saath likho, bina + aur bina 0 ke. Pakistan example: 923001234567`, 'error');
-            return;
+        if (!userId) return socket.emit('console', { timestamp: new Date().toLocaleTimeString(), message: 'Session name missing. Create a session first.', type: 'error' });
+        try {
+            const code = await startPairingFlow(userId, number, socket.id);
+            socket.emit('pairing-code', code);
+        } catch (err) {
+            socket.emit('console', { timestamp: new Date().toLocaleTimeString(), message: err.message || 'Pairing failed', type: 'error' });
         }
-
-        if (!botData.statusSettings[userId]) {
-            botData.statusSettings[userId] = { autoStatus: false, autoSeen: false, autoLike: false, autoDownload: false, isPublic: true };
-            saveBotData();
-        }
-        sessions[userId]._initRetries = 0;
-        sessions[userId].sendLog(`📲 Pairing request mili: ${clean}`, 'info');
-        await sessions[userId].initialize(clean);
     });
 
     socket.on('logout', async (userId) => {
@@ -1577,12 +1677,19 @@ server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     loadExistingSessions();
     
-    const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
-    if (APP_URL) {
-        setInterval(async () => {
-            try {
-                await axios.get(APP_URL);
-            } catch (e) {}
-        }, 5 * 60 * 1000);
-    }
+    setInterval(async () => {
+        try {
+            await axios.get(`http://127.0.0.1:${PORT}/`, { timeout: 8000 });
+        } catch (e) {}
+        try {
+            const owner = sessions.owner;
+            if (!owner) {
+                loadExistingSessions();
+                return;
+            }
+            if (!owner.isConnected && !owner.isInitializing) {
+                owner.scheduleReconnect('watchdog');
+            }
+        } catch (e) {}
+    }, 30000);
 });

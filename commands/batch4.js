@@ -188,7 +188,7 @@ async function pdf(sock, from, msg, q) {
             await new Promise((resolve, reject) => { writeStream.on('finish', resolve); writeStream.on('error', reject); });
         }
 
-        await sock.sendMessage(from, { document: fs.readFileSync(tmpFile), mimetype: 'application/pdf', fileName: 'awais-cyber.pdf' }, { quoted: msg });
+        await sock.sendMessage(from, { document: fs.readFileSync(tmpFile), mimetype: 'application/pdf', fileName: 'zephyr-md.pdf' }, { quoted: msg });
         fs.unlink(tmpFile).catch(() => {});
     } catch (e) {
         await sock.sendMessage(from, { text: '❌ Could not generate the PDF. Try again.' }, { quoted: msg });

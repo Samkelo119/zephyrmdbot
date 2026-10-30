@@ -1,21 +1,17 @@
+const botClock = require('../lib/botClock');
+
 module.exports = {
     name: 'runtime',
     aliases: ['uptime', 'up'],
     description: 'Get bot runtime',
-    execute: async (sock, remoteJid, message, args) => {
+    execute: async (sock, remoteJid, message) => {
         try {
-            const uptime = process.uptime();
-            const hours = Math.floor(uptime / 3600);
-            const minutes = Math.floor((uptime % 3600) / 60);
-            const seconds = Math.floor(uptime % 60);
-            
-            await sock.sendMessage(remoteJid, { 
-                text: `⏳ ZEPHYR MDʀᴜɴᴛɪᴍᴇ:\n\n` +
-                      `🕐 *Uptime:* ${hours}h ${minutes}m ${seconds}s` 
-            });
+            await sock.sendMessage(remoteJid, {
+                text: `⏳ ZᴇPʜʏʀMᴅ ʀᴜɴᴛɪᴍᴇ:\n\n🕐 *Uptime:* ${botClock.formatDuration(botClock.uptimeMs())}\n📅 *Started:* ${botClock.startedLabel()}\n🕰️ *Now:* ${botClock.nowLabel()}`
+            }, { quoted: message });
         } catch (err) {
             console.error('Runtime command error:', err);
-            await sock.sendMessage(remoteJid, { text: '❌ Error executing runtime command.' });
+            await sock.sendMessage(remoteJid, { text: 'Error executing runtime command.' }, { quoted: message });
         }
     }
 };

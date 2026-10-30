@@ -1,9 +1,4 @@
-// commands/group-extra.js
-// 👑 AWAIS CYBER — Group utility commands that work WITHOUT the bot needing
-// WhatsApp group-admin rights. (Actions that WhatsApp itself restricts to
-// admins — kick/promote/change name/change icon — still need the bot
-// account to be a real WA group admin; that's a platform rule, not something
-// code can bypass.)
+const botClock = require('../lib/botClock');
 
 async function groupname(sock, from, msg, isGroup) {
     if (!isGroup) return sock.sendMessage(from, { text: '❌ Yeh command sirf group mein chalti hai.' }, { quoted: msg });
@@ -75,13 +70,10 @@ async function chatid(sock, from, msg) {
     await sock.sendMessage(from, { text: `🆔 *Chat ID:*\n${from}` }, { quoted: msg });
 }
 
-async function runtime(sock, from, msg, botData) {
-    const ms = Date.now() - (botData.startedAt || Date.now());
-    const s = Math.floor(ms / 1000) % 60;
-    const m = Math.floor(ms / (1000 * 60)) % 60;
-    const h = Math.floor(ms / (1000 * 60 * 60)) % 24;
-    const d = Math.floor(ms / (1000 * 60 * 60 * 24));
-    await sock.sendMessage(from, { text: `⏱️ *Bot Runtime:*\n${d}d ${h}h ${m}m ${s}s` }, { quoted: msg });
+async function runtime(sock, from, msg) {
+    await sock.sendMessage(from, {
+        text: `⏱️ *Bot Runtime*\nUptime: ${botClock.formatDuration(botClock.uptimeMs())}\nStarted: ${botClock.startedLabel()}\nNow: ${botClock.nowLabel()}`
+    }, { quoted: msg });
 }
 
 async function rules(sock, from, msg, args, isGroup, botData, saveBotData, q) {

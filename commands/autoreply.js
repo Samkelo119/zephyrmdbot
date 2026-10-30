@@ -40,7 +40,7 @@ async function getAiReply(userText) {
                     messages: [
                         {
                             role   : 'system',
-                            content: `You are SKYKIID-MD, a friendly and helpful WhatsApp assistant bot created by MRDIEHARD TECH.
+                            content: `You are ZᴇPʜʏʀMᴅ, a friendly and helpful WhatsApp assistant bot created by MʀDɪᴇHᴀʀᴅTᴇᴄʜX.
 Respond in the SAME language the user writes in — Zulu, Siswati, English, Afrikaans, or any other language.
 Keep responses warm, conversational, and concise (under 200 words).
 Never say you are made by OpenAI. You are SKYKIID-MD.`,
@@ -68,7 +68,7 @@ Never say you are made by OpenAI. You are SKYKIID-MD.`,
                 messages: [
                     {
                         role   : 'system',
-                        content: `You are ZᴇPʜʏʀ-Mᴅ, a friendly WhatsApp assistant by MʀDɪᴇHᴀʀᴅ TᴇᴄʜX. Reply in the same language as the user. Keep it short and helpful.`,
+                        content: `You are ZᴇPʜʏʀMᴅ, a friendly WhatsApp assistant by MʀDɪᴇHᴀʀᴅTᴇᴄʜX. Reply in the same language as the user. Keep it short and helpful.`,
                     },
                     { role: 'user', content: userText },
                 ],

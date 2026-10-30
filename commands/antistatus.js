@@ -25,7 +25,7 @@ async function antistatusCommand(sock, from, msg, isAdmin, botData, saveBotData,
         await sock.sendMessage(from, { react: { text: '🛡️', key: msg.key } });
         await sock.sendMessage(from, { 
             text: `╭━━━〔 🛡️ *𝗔𝗡𝗧𝗜-𝗦𝗧𝗔𝗧𝗨𝗦 𝗔𝗖𝗧𝗜𝗩𝗔𝗧𝗘𝗗* 〕━━━╮\n\n` +
-                  `🤖 *𝗕𝗢𝗧:* 𝗭𝗘𝗣𝗛𝗬𝗥 𝗨𝗟𝗧𝗥𝗔-𝗕𝗢𝗧\n` +
+                  `🤖 *𝗕𝗢𝗧:* ZᴇPʜʏʀMᴅ\n` +
                   `⚙️ *Protocol:* Anti-Status Core V1\n` +
                   `📊 *Status:* Operational [100% Active]\n\n` +
                   `💀 _Any status/story updates forwarded or shared inside this group network will be automatically purged._\n\n` +
@@ -39,7 +39,7 @@ async function antistatusCommand(sock, from, msg, isAdmin, botData, saveBotData,
         await sock.sendMessage(from, { react: { text: '⚠️', key: msg.key } });
         await sock.sendMessage(from, { 
             text: `╭━━━〔 ⚠️ *𝗦𝗛𝗜𝗘𝗟𝗗 𝗗𝗘𝗔𝗖𝗧𝗜𝗩𝗔𝗧𝗘𝗗* 〕━━━╮\n\n` +
-                  `🤖 *𝗕𝗢𝗧:* 𝗭𝗘𝗣𝗛𝗬𝗥 𝗨𝗟𝗧𝗥𝗔-𝗕𝗢𝗧\n` +
+                  `🤖 *𝗕𝗢𝗧:* ZᴇPʜʏʀMᴅ\n` +
                   `🚨 *Status:* Firewall Disabled [Standby Mode]\n\n` +
                   `⚠️ _Warning: Security layer is down. Status forwards can now bypass the matrix unfiltered._\n\n` +
                   `╰━━━━━━━━━━━━━━━━━━━━━━╯`

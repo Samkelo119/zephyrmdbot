@@ -51,8 +51,11 @@ async function sslcheck(sock, from, msg, q) {
         });
         const expiry = new Date(cert.valid_to);
         const daysLeft = Math.ceil((expiry - Date.now()) / (1000 * 60 * 60 * 24));
+        const subject = cert.subject?.CN || cert.subject?.O || host;
+        const alt = cert.subjectaltname || 'none';
+        const status = daysLeft < 0 ? 'EXPIRED' : daysLeft < 14 ? 'EXPIRING SOON' : 'VALID';
         await sock.sendMessage(from, {
-            text: `🔐 *SSL Certificate: ${host}*\n\n▪️ Issuer: ${cert.issuer?.O || cert.issuer?.CN || 'unknown'}\n▪️ Valid From: ${cert.valid_from}\n▪️ Valid To: ${cert.valid_to}\n▪️ Days Remaining: ${daysLeft} ${daysLeft < 14 ? '⚠️ expiring soon!' : '✅'}`
+            text: `🔐 *SSL Checker: ${host}*\n\n▪️ Status: ${status}\n▪️ Subject: ${subject}\n▪️ Issuer: ${cert.issuer?.O || cert.issuer?.CN || 'unknown'}\n▪️ Valid From: ${cert.valid_from}\n▪️ Valid To: ${cert.valid_to}\n▪️ Days Remaining: ${daysLeft}\n▪️ Alt Names: ${alt}`
         }, { quoted: msg });
     } catch (e) {
         await sock.sendMessage(from, { text: `❌ Could not check SSL for "${host}": ${e.message}` }, { quoted: msg });

@@ -26,7 +26,7 @@ async function antilinkCommand(sock, from, msg, isAdmin, botData, saveBotData, a
         await sock.sendMessage(from, { react: { text: '🛡️', key: msg.key } });
         await sock.sendMessage(from, { 
             text: `╭━━━〔 🛡️ *𝗔𝗡𝗧𝗜-𝗟𝗜𝗡𝗞 𝗔𝗖𝗧𝗜𝗩𝗔𝗧𝗘𝗗* 〕━━━╮\n\n` +
-                  `🤖 *𝗕𝗢𝗧:* 𝗭𝗘𝗣𝗛𝗬𝗥 𝗨𝗟𝗧𝗥𝗔-𝗕𝗢𝗧\n` +
+                  `🤖 *𝗕𝗢𝗧:* ZᴇPʜʏʀMᴅ\n` +
                   `⚙️ *Protocol:* Anti-Link Core V3\n` +
                   `⚡ *Action Mode:* Delete Only [Pure Intercept]\n` +
                   `📊 *Status:* Operational [100% Active]\n\n` +
@@ -41,7 +41,7 @@ async function antilinkCommand(sock, from, msg, isAdmin, botData, saveBotData, a
         await sock.sendMessage(from, { react: { text: '🚨', key: msg.key } });
         await sock.sendMessage(from, { 
             text: `╭━━━〔 🚨 *𝗛𝗔𝗥𝗗-𝗖𝗢𝗥𝗘 𝗦𝗛𝗜𝗘𝗟𝗗* 〕━━━╮\n\n` +
-                  `🤖 *𝗕𝗢𝗧:* 𝗭𝗘𝗣𝗛𝗬𝗥 𝗨𝗟𝗧𝗥𝗔-𝗕𝗢𝗧\n` +
+                  `🤖 *𝗕𝗢𝗧:* ZᴇPʜʏʀMᴅ\n` +
                   `⚙️ *Protocol:* Anti-Link Core V3\n` +
                   `🔥 *Action Mode:* Kick + Delete [Total Ban]\n` +
                   `🚨 *Status:* Extreme Security Armed\n\n` +
@@ -56,7 +56,7 @@ async function antilinkCommand(sock, from, msg, isAdmin, botData, saveBotData, a
         await sock.sendMessage(from, { react: { text: '⚠️', key: msg.key } });
         await sock.sendMessage(from, { 
             text: `╭━━━〔 ⚠️ *𝗦𝗛𝗜𝗘𝗟𝗗 𝗗𝗘𝗔𝗖𝗧𝗜𝗩𝗔𝗧𝗘𝗗* 〕━━━╮\n\n` +
-                  `🤖 *𝗕𝗢𝗧:* 𝗭𝗘𝗣𝗛𝗬𝗥 𝗨𝗟𝗧𝗥𝗔-𝗕𝗢𝗧\n` +
+                  `🤖 *𝗕𝗢𝗧:* ZᴇPʜʏʀMᴅ\n` +
                   `🚨 *Status:* Firewall Disabled [Standby Mode]\n\n` +
                   `⚠️ _Warning: Security layer is down. External links can now bypass the matrix unfiltered._\n\n` +
                   `╰━━━━━━━━━━━━━━━━━━━━━━╯`

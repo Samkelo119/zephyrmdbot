@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node bootstrap.js",
-    "pm2": "pm2 start bootstrap.js --name awais-cyber-bot",
+    "pm2": "pm2 start bootstrap.js --name zephyrmd-bot",
     "dev": "nodemon index.js"
   },
   "dependencies": {

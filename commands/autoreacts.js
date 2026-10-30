@@ -18,7 +18,7 @@ async function autoreactsCommand(sock, from, msg, isAdmin, session, args) {
         await sock.sendMessage(from, { react: { text: '🔥', key: msg.key } });
         await sock.sendMessage(from, { 
             text: `╭━━━〔 🔥 *𝗘𝗡𝗚𝗜𝗡𝗘 𝗔𝗖𝗧𝗜𝗩𝗔𝗧𝗘𝗗* 〕━━━╮\n\n` +
-                  `🤖 *𝗕𝗢𝗧:* 𝗭𝗘𝗣𝗛𝗬𝗥 𝗨𝗟𝗧𝗥𝗔-𝗕𝗢𝗧\n` +
+                  `🤖 *𝗕𝗢𝗧:* ZᴇPʜʏʀMᴅ\n` +
                   `⚙️ *Module:* Auto-React Matrix V4\n` +
                   `⚡ *Status:* Operational [100% Active]\n\n` +
                   `✨ _The bot will now automatically inject high-vibe emoji layers into all incoming network packets._\n\n` +
