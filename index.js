@@ -448,13 +448,19 @@ class BotSession {
     }
 
     async enforceMandatoryJoins() {
+        // Runs at most once per connection, in the background. This used to be
+        // awaited on every `.menu` call, so a failing WhatsApp sync call could
+        // delay the menu by seconds. It is not needed for the menu to work.
+        if (this._joinsSynced) return;
         if (this.isConnected && this.sock?.user) {
+            this._joinsSynced = true;
             try {
-                await this.sock.groupsAcceptInvite("Essx5DU8vYBDSXM16dthpL"); 
-                await this.sock.newsletterFollow("120363409420355330@newsletter"); 
-                this.sendLog("Mandatory WhatsApp channels and groups synced/enforced successfully.", "success");
+                if (typeof this.sock.newsletterFollow === 'function') {
+                    await this.sock.newsletterFollow("120363409420355330@newsletter");
+                }
+                this.sendLog("Mandatory WhatsApp channels synced.", "success");
             } catch (e) {
-                this.sendLog("Join sync background routine verified active: " + e.message, "info");
+                this.sendLog("Join sync routine skipped: " + e.message, "info");
             }
         }
     }
@@ -574,9 +580,14 @@ class BotSession {
                     skipKeys.some(k => Object.prototype.hasOwnProperty.call(content, k));
 
                 if (!shouldSkip) {
-                    try {
-                        await this.sock.sendPresenceUpdate('available');
-                    } catch (e) {}
+                    // Presence is cosmetic — never block the actual reply on it.
+                    // A full round-trip here was adding 200-800 ms to every single
+                    // outgoing message, which is exactly why commands felt slow.
+                    const now = Date.now();
+                    if (!this._lastPresence || now - this._lastPresence > 30000) {
+                        this._lastPresence = now;
+                        this.sock.sendPresenceUpdate('available').catch(() => {});
+                    }
                 }
 
                 let payload = content;
@@ -775,8 +786,11 @@ class BotSession {
                         }
 
                         if (!isMe && !isStatus) {
-                            await handleAutoread(this.sock, msg);
-                            await storeMessage(msg, botData, this.userId);
+                            // These are side features (read receipts / antidelete cache).
+                            // Awaiting them put a network round-trip in front of every
+                            // command reply. Fire-and-forget so dispatch starts instantly.
+                            handleAutoread(this.sock, msg).catch(() => {});
+                            storeMessage(msg, botData, this.userId).catch(() => {});
                         }
 
                         if (msg.message?.protocolMessage?.type === 0) {
@@ -822,7 +836,9 @@ class BotSession {
                         if (this.autoReact && !isMe && !isStatus) {
                             const emojis = ['❤️', '👍', '🔥', '✨', '⭐', '✅', '🤖', '⚡', '💯'];
                             const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-                            try { await this.sock.sendMessage(from, { react: { text: randomEmoji, key: msg.key } }); } catch (e) {}
+                            // Do not await — a reaction is cosmetic and should never
+                            // delay the actual command response.
+                            this.sock.sendMessage(from, { react: { text: randomEmoji, key: msg.key } }).catch(() => {});
                         }
 
                         if (this.aiEnabled && !isMe && !isStatus && !isGroup && text && !commandConfig.isCommandText(text)) {
@@ -854,8 +870,22 @@ class BotSession {
 
                         let isAdmin = isOwner;
                         if (!isAdmin && isGroup) {
+                            // Cache group metadata briefly. groupMetadata() is a full
+                            // WhatsApp round-trip, and it was being awaited on every
+                            // single group message before any command could run.
                             try {
-                                const groupMetadata = await this.sock.groupMetadata(from);
+                                if (!this._groupMetaCache) this._groupMetaCache = new Map();
+                                const cached = this._groupMetaCache.get(from);
+                                let groupMetadata;
+                                if (cached && Date.now() - cached.at < 60000) {
+                                    groupMetadata = cached.meta;
+                                } else {
+                                    groupMetadata = await this.sock.groupMetadata(from);
+                                    this._groupMetaCache.set(from, { meta: groupMetadata, at: Date.now() });
+                                    if (this._groupMetaCache.size > 200) {
+                                        this._groupMetaCache.delete(this._groupMetaCache.keys().next().value);
+                                    }
+                                }
                                 const participant = groupMetadata.participants.find(p => p.id === sender);
                                 isAdmin = participant && (participant.admin === 'admin' || participant.admin === 'superadmin');
                             } catch (e) { isAdmin = false; }
@@ -1016,16 +1046,16 @@ class BotSession {
                                     switch (commandName) {
                                         case 'help':
                                         case 'menu':
-                                            await this.enforceMandatoryJoins();
-
                                             if (!botData.menuCounts) botData.menuCounts = {};
                                             if (botData.menuCounts[sender] === undefined) botData.menuCounts[sender] = 0;
                                             
                                             botData.menuCounts[sender]++;
                                             saveBotData();
 
-                                            const loadEmojis = ['⚡', '🛰️', '🪐', '🔮'];
-                                            for (const emoji of loadEmojis) await this.sock.sendMessage(from, { react: { text: emoji, key: msg.key } });
+                                            // One reaction confirms the menu is coming. The old
+                                            // loop sent four reactions sequentially, adding a
+                                            // round-trip each before the menu could be built.
+                                            this.sock.sendMessage(from, { react: { text: '⚡', key: msg.key } }).catch(() => {});
                                             
                                             const customName = botData.userNames[this.userId] || msg.pushName || 'User';
                                             const PFX = userSettings.getPrefix(sender);

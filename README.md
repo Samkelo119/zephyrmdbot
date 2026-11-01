@@ -20,6 +20,12 @@
 
 [WhatsApp Channel](https://whatsapp.com/channel/0029Vb8p6DV8aKvNTp6n8n45) · [Pairing Console](#-quick-start) · [Commands](#-command-map)
 
+<br>
+
+<a href="https://zephyrmdbot.onrender.com/" target="_blank" rel="noopener">
+  <img src="https://img.shields.io/badge/PAIR%20NOW-Click%20to%20Connect-25D366?style=for-the-badge&logo=whatsapp&logoColor=white&labelColor=111827" alt="PAIR NOW">
+</a>
+
 </div>
 
 ---
@@ -31,9 +37,9 @@
 
 ```
 ╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
-┃  PAIRING CODE  ·  ALWAYS ZEPH-YRMD   ┃
+┃  PAIR AT zephyrmdbot.onrender.com    ┃
 ┃  WhatsApp > Linked Devices           ┃
-┃  Link with phone number              ┃
+┃  Generate a live 8-character code    ┃
 ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
 ```
 
@@ -43,7 +49,7 @@
 
 | | Feature | Detail |
 | :---: | :--- | :--- |
-| 01 | Pairing | Fixed WhatsApp code **ZEPH-YRMD** from the pairing site |
+| 01 | Pairing | Live 8-character WhatsApp code from the pairing site |
 | 02 | 24/7 | Presence keep-alive, reconnect watchdog, crash guards |
 | 03 | Prefix | Each user has their own prefix. After `.setprefix`, only that prefix works |
 | 04 | Menu | Picture + full command list in one message, 17 fonts via `.menustyle` |
@@ -63,11 +69,11 @@ node bootstrap.js
 
 `bootstrap.js` installs dependencies on first run, then starts the bot on port **3000**.
 
-1. Open the pairing page (`http://localhost:3000`)
-2. Session name: `owner`
-3. Number: `27832573402` (country code, no `+`)
-4. Generate Code — WhatsApp shows **ZEPH-YRMD**
-5. Phone: **Linked Devices → Link with phone number → ZEPH-YRMD**
+1. Open the pairing page: [zephyrmdbot.onrender.com](https://zephyrmdbot.onrender.com/)
+2. Enter your WhatsApp number with country code (no `+`)
+3. Tap **Generate** — a live code appears
+4. Phone: **Linked Devices → Link with phone number**
+5. Enter the 8-character code within about one minute
 
 ```bash
 npm install
@@ -78,21 +84,18 @@ node index.js
 
 ## Pairing
 
-The pairing console always requests the custom companion code **ZEPHYRMD**, shown as:
-
-```
-ZEPH-YRMD
-```
+The pairing console requests a real companion code from WhatsApp, so every
+code is different and only valid for a short time.
 
 | Step | Action |
 | :--- | :--- |
-| 1 | Open the pairing site |
-| 2 | Create / select session `owner` |
-| 3 | Enter the WhatsApp number with country code |
-| 4 | Tap **Generate Code** |
-| 5 | Enter **ZEPH-YRMD** on the phone within about one minute |
+| 1 | Open [zephyrmdbot.onrender.com](https://zephyrmdbot.onrender.com/) |
+| 2 | Enter the WhatsApp number with country code |
+| 3 | Tap **Generate** |
+| 4 | Copy the live 8-character code |
+| 5 | Phone: **Linked Devices → Link with phone number → enter the code** |
 
-If the code expires, generate again. The value stays **ZEPH-YRMD**.
+If the code expires, tap Generate again for a fresh one.
 
 ---
 
@@ -136,7 +139,7 @@ Never commit `auth_info/`, `data/`, or `.env`.
 zephyrmdbot/
 ├── bootstrap.js          auto-install + start
 ├── index.js              socket, pairing, command router
-├── pair.html             pairing console (code ZEPH-YRMD)
+├── pair.html             pairing console (live codes)
 ├── settings.js           bot name, owner, timezone
 ├── commands/             command modules
 ├── lib/                  menu, styles, prefix, admin
@@ -174,6 +177,8 @@ WhatsApp needs a **persistent** Node process. Serverless hosts cannot keep the s
 
 **Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵**
 
-`ZEPH-YRMD`
+<a href="https://zephyrmdbot.onrender.com/" target="_blank" rel="noopener">
+  <img src="https://img.shields.io/badge/PAIR%20NOW-Click%20to%20Connect-25D366?style=for-the-badge&logo=whatsapp&logoColor=white&labelColor=111827" alt="PAIR NOW">
+</a>
 
 </div>
