@@ -10,7 +10,7 @@ module.exports = {
                 await context.sendResponse(sock, remoteJid, responseText, message);
             } else {
                 // Fallback
-                await sock.sendMessage(remoteJid, { text: responseText + "\n\n> Powered by MRDIEHARD TechX" }, { quoted: message });
+                await sock.sendMessage(remoteJid, { text: responseText + "\n\nPᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵" }, { quoted: message });
             }
         } catch (err) {
             console.error('Stream command error:', err);

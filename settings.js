@@ -5,7 +5,7 @@ module.exports = {
     // ==============================
 
     botName: "⚡ZᴇPʜʏʀ~Mᴅ⚡",
-    version: "3.0.0",
+    version: "1.0.0",
 
     ownerName: "MʀDɪᴇHᴀʀᴅTᴇᴄʜX",
     ownerNumber: process.env.OWNER_NUMBER || "27832573402",
@@ -52,7 +52,7 @@ module.exports = {
 🚀 Multi Device Active
 🛡️ Security Enabled
 
-Powered By MʀDɪᴇHᴀʀᴅTᴇᴄʜX
+Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵
 ╰━━━━━━━━━━━━━━━━╯
         `,
 

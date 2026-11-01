@@ -205,7 +205,7 @@ function buildHtml(theme, variant, cards) {
 
 <div class="add-hint">✨ ${cards.length}/${MAX_CARDS_PER_PAGE} cards on this page — this is your own personal page, run the command again with a new photo to add more.</div>
 
-<footer>Powered By MʀDɪᴇHᴀʀᴅTᴇᴄʜX</footer>
+<footer>Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵</footer>
 
 <script>
   // twinkling stars

@@ -172,7 +172,7 @@ WhatsApp needs a **persistent** Node process. Serverless hosts cannot keep the s
 
 <div align="center">
 
-**Powered By MʀDɪᴇHᴀʀᴅTᴇᴄʜX**
+**Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵**
 
 `ZEPH-YRMD`
 

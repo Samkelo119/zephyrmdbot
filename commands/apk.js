@@ -78,7 +78,7 @@ async function apkCommand(sock, chatId, message) {
       `📅 *Last Update*: ${lastup}\n` +
       `📦 *Package*: ${package}\n` +
       `📏 *Size*: ${size}\n\n` +
-      `> © POWERED BY 𝘔𝘋𝘏 CYBER GANG`;
+      `> Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵`;
 
     // Send APK as document
     await sock.sendMessage(

@@ -45,7 +45,7 @@ function renderSelectorHtml(servers) {
   <h1>⚡ Choose a Bot Server</h1>
   <p>Pick which deployment to connect to</p>
   <div class="list">${cards}</div>
-  <footer>Powered By MʀDɪᴇHᴀʀᴅTᴇᴄʜX</footer>
+  <footer>Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵</footer>
 </body>
 </html>`;
 }

@@ -23,6 +23,7 @@ const { OpenAI } = require('openai');
 // Import Commands
 const commands = {
     song: require('./commands/song'),
+    play: require('./commands/play'),
     video: require('./commands/video'),
     kick: require('./commands/kick'),
     private: require('./commands/private'),
@@ -1142,6 +1143,7 @@ class BotSession {
                                         case 'insta': case 'ig': await commands.insta(this.sock, from, msg, q); break;
                                         case 'tiktok': await commands.tiktok(this.sock, from, msg, q); break;
                                         case 'song': await commands.song(this.sock, from, msg); break;
+                                        case 'play': await commands.play(this.sock, from, msg); break;
                                         case 'video': await commands.video(this.sock, from, msg); break;
                                         case 'crunchyroll': case 'anime': await omegaTech.crunchyroll(this.sock, from, msg, q); break;
                                         case 'ytdown': case 'yt': case 'ytdl': await omegaTech.ytdown(this.sock, from, msg, q); break;

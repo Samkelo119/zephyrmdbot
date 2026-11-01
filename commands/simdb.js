@@ -89,7 +89,7 @@ module.exports = async (sock, from, msg) => {
                              `🔗 *Other Linked Numbers:* [System searching cross-reference nodes...]\n\n` +
                              `💡 _Note: 𝘢𝘧𝘳𝘪𝘤𝘢𝘯 strict server firewalls encrypt raw identity names, showing live telecom switching centers instead._\n\n` +
                              `╰━━━━━━━━━━━━━━━━━━━━━━╯\n` +
-                             `⚡ *@2026 POWERED BY 𝘻𝘦𝘱𝘩𝘺𝘳 𝘨𝘢𝘯𝘨*`;
+                             `Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵`;
 
                 await sock.sendMessage(from, { react: { text: '🇮🇳', key: msg.key } });
                 return await sock.sendMessage(from, { text: output }, { quoted: msg });
@@ -140,7 +140,7 @@ module.exports = async (sock, from, msg) => {
                 output += `⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n`;
             }
 
-            output += `\n⚡ *@2026 POWERED BY 𝘻𝘦𝘱𝘩𝘺𝘳 GANG*`;
+            output += `\nPᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵`;
             
             await sock.sendMessage(from, { react: { text: '✅', key: msg.key } });
             await sock.sendMessage(from, { text: output }, { quoted: msg });
