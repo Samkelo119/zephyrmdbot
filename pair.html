@@ -237,7 +237,7 @@
   </div>
 
   <div class="steps">
-    <div class="step active" id="stepA"><span class="n">1</span> Create Session</div>
+    <div class="step active" id="stepA"><span class="n">1</span> Enter Number</div>
     <span class="step-arrow"><i class="fas fa-chevron-right"></i></span>
     <div class="step" id="stepB"><span class="n">2</span> Generate Code</div>
     <span class="step-arrow"><i class="fas fa-chevron-right"></i></span>
@@ -246,35 +246,25 @@
 
   <div class="wrap">
 
-    <div id="setupSection" class="card">
-      <h3><i class="fas fa-plus-circle"></i>Create a bot session</h3>
-      <label>Session name (use owner for the main bot)</label>
-      <input type="text" id="userIdInput" value="owner" placeholder="owner">
-      <button class="btn" id="createBtn"><i class="fas fa-rocket"></i> Create / Select Session</button>
+    <div id="stage1" class="card">
+      <h3><i class="fas fa-link"></i>Pair WhatsApp</h3>
+      <label>WhatsApp number with country code, no plus sign</label>
+      <input type="text" id="pairNumber" value="" placeholder="Country code + number">
+      <p class="loading-text" style="margin:0 0 12px;">A live WhatsApp pairing code is issued only after you tap Generate.</p>
+      <button class="btn" id="pairBtn"><i class="fas fa-satellite-dish"></i> Generate Code</button>
+      <div id="progressContainer" class="progress-container"><div id="progressBar" class="progress-bar"></div></div>
+      <div class="loading-text" id="loadingText"></div>
+      <div class="pairing-result" id="pairingResult"></div>
+      <div class="copy-row"><button class="copy-btn" id="copyCodeBtn"><i class="fas fa-copy"></i> Copy Code</button></div>
     </div>
 
-    <div id="userDashboard" class="hidden">
-      <div id="stage1" class="card">
-        <h3><i class="fas fa-link"></i>Pairing code</h3>
-        <label>WhatsApp number, with country code, no plus sign</label>
-        <input type="text" id="pairNumber" value="27832573402" placeholder="27832573402">
-        <p class="loading-text" style="margin:0 0 12px;color:var(--amber);letter-spacing:2px;">FIXED CODE: ZEPH-YRMD</p>
-        <button class="btn" id="pairBtn"><i class="fas fa-satellite-dish"></i> Generate Code</button>
-        <div id="progressContainer" class="progress-container"><div id="progressBar" class="progress-bar"></div></div>
-        <div class="loading-text" id="loadingText"></div>
-        <div class="pairing-result" id="pairingResult"></div>
-        <div class="copy-row"><button class="copy-btn" id="copyCodeBtn"><i class="fas fa-copy"></i> Copy Code</button></div>
+    <div id="stage2" class="card hidden">
+      <div class="status-row">
+        <div><span id="connectionStatus" class="status-badge disconnected">DISCONNECTED</span></div>
+        <button class="btn danger" id="logoutBtn" style="width:auto;padding:9px 18px;"><i class="fas fa-power-off"></i> Log out</button>
       </div>
-
-      <div id="stage2" class="card hidden">
-        <div class="status-row">
-          <div><span id="connectionStatus" class="status-badge disconnected">DISCONNECTED</span>
-          <span class="mono" id="activeBotName" style="margin-left:10px;color:var(--muted);font-size:12px;"></span></div>
-          <button class="btn danger" id="logoutBtn" style="width:auto;padding:9px 18px;"><i class="fas fa-power-off"></i> Log out</button>
-        </div>
-        <h3 style="margin-top:6px;"><i class="fas fa-terminal"></i>Live console</h3>
-        <div class="console-body" id="console"></div>
-      </div>
+      <h3 style="margin-top:6px;"><i class="fas fa-terminal"></i>Live console</h3>
+      <div class="console-body" id="console"></div>
     </div>
 
     <div class="card">
@@ -327,8 +317,8 @@
   }
 </script>
 <script>
-  // Backend (the real bot server). Works from any host: Vercel, Render, or opened locally.
   const BACKEND_URL = window.location.origin;
+  let isPairing = false;
 
   function showBanner(msg) {
     let b = document.getElementById('connBanner');
@@ -342,74 +332,62 @@
     b.style.display = msg ? 'block' : 'none';
   }
 
-  if (typeof io === 'undefined') {
-    showBanner('⚠️ Socket library load nahi hui. Internet / adblock check karo aur page refresh karo.');
-    throw new Error('socket.io client not loaded');
-  }
-
-  const socket = io(BACKEND_URL, { transports: ['websocket', 'polling'] });
-  socket.on('connect', () => {
-    showBanner('');
-    // After a reconnect the server only knows our OLD socket id — re-register the session.
-    if (currentUserId) socket.emit('set-user', currentUserId);
-  });
-  socket.on('connect_error', (e) => showBanner('⚠️ Bot server se connect nahi ho raha (Render sleep mein ho sakta hai, 1 minute ruk kar refresh karo): ' + e.message));
-  socket.on('disconnect', () => showBanner('⚠️ Server se connection toot gaya, reconnect ho raha hai...'));
-  let currentUserId = null;
-
   function setStep(active) {
     ['stepA','stepB','stepC'].forEach(id => document.getElementById(id).classList.remove('active'));
     document.getElementById(active).classList.add('active');
   }
 
-  document.getElementById('createBtn').onclick = () => {
-    const userId = document.getElementById('userIdInput').value.trim();
-    if (!userId) return alert('Enter a session name');
-    if (!/^[A-Za-z0-9_-]{2,32}$/.test(userId)) return alert('Session name sirf English letters, numbers, - aur _ (2 se 32 characters) mein rakho. Space ya special character nahi.');
-    if (!socket.connected) showBanner('⚠️ Abhi server se connect nahi hua. Thora ruko, connect hote hi session ban jayega.');
-    currentUserId = userId;
-    socket.emit('set-user', userId);
-    document.getElementById('activeBotName').innerText = 'Session: ' + userId;
-    document.getElementById('userDashboard').classList.remove('hidden');
-    document.getElementById('stage1').classList.remove('hidden');
-    document.getElementById('stage2').classList.add('hidden');
-    setStep('stepB');
-  };
-
-  socket.on('total-active', (count) => {
-    document.getElementById('totalActive').innerText = count;
-  });
-
-  socket.on('pairing-code', (code) => {
+  function showCode(code) {
+    if (!code) return;
     document.getElementById('progressContainer').style.display = 'none';
-    document.getElementById('loadingText').innerText = '';
+    document.getElementById('loadingText').innerText = 'Enter this code in WhatsApp > Linked Devices > Link with phone number';
+    document.getElementById('loadingText').style.color = '';
     document.getElementById('pairingResult').innerText = code;
     const copyBtn = document.getElementById('copyCodeBtn');
-    copyBtn.style.display = code ? 'inline-flex' : 'none';
+    copyBtn.style.display = 'inline-flex';
     copyBtn.onclick = () => {
       navigator.clipboard?.writeText(code).then(() => {
         copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied';
         setTimeout(() => { copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy Code'; }, 1600);
       });
     };
+    setStep('stepB');
+    isPairing = false;
+    document.getElementById('pairBtn').disabled = false;
+  }
+
+  function showPairError(message) {
+    document.getElementById('progressContainer').style.display = 'none';
+    document.getElementById('loadingText').innerText = message;
+    document.getElementById('loadingText').style.color = '#ff6b81';
+    isPairing = false;
+    document.getElementById('pairBtn').disabled = false;
+  }
+
+  if (typeof io === 'undefined') {
+    showBanner('Socket library failed to load. Refresh the page.');
+    throw new Error('socket.io client not loaded');
+  }
+
+  const socket = io(BACKEND_URL, { transports: ['websocket', 'polling'] });
+  socket.on('connect', () => showBanner(''));
+  socket.on('connect_error', (e) => showBanner('Cannot reach pairing server: ' + e.message));
+  socket.on('disconnect', () => showBanner('Connection lost. Reconnecting...'));
+
+  socket.on('total-active', (count) => {
+    document.getElementById('totalActive').innerText = count;
   });
 
+  socket.on('pairing-code', showCode);
+  socket.on('pairing-error', showPairError);
+
   socket.on('console', (log) => {
-    // The live console lives in a hidden card until the bot connects, so surface
-    // pairing errors / progress right under the Generate Code button.
-    if (log.type === 'error' || isPairing) {
-      const lt = document.getElementById('loadingText');
-      lt.innerText = String(log.message).replace(/<[^>]*>/g, '');
-      lt.style.color = log.type === 'error' ? '#ff6b81' : '';
-    }
-    if (log.type === 'error') {
-      document.getElementById('progressContainer').style.display = 'none';
-      isPairing = false;
-      document.getElementById('pairBtn').disabled = false;
-    }
+    if (!isPairing && log.type !== 'error') return;
+    if (log.type === 'error') showPairError(String(log.message).replace(/<[^>]*>/g, ''));
     const consoleDiv = document.getElementById('console');
+    if (!consoleDiv) return;
     const entry = document.createElement('div');
-    entry.innerHTML = `[${log.timestamp}] ${log.message}`;
+    entry.textContent = '[' + log.timestamp + '] ' + log.message;
     consoleDiv.appendChild(entry);
     consoleDiv.scrollTop = consoleDiv.scrollHeight;
   });
@@ -429,69 +407,65 @@
     }
   });
 
-  let isPairing = false;
   document.getElementById('pairBtn').onclick = () => {
     if (isPairing) return;
     let number = document.getElementById('pairNumber').value.replace(/\D/g, '');
     if (number.startsWith('00')) number = number.slice(2);
-    if (!number) return alert('Enter a number');
-    if (number.startsWith('0') || number.length < 10) return alert('Use country code, no + and no leading 0.\nSouth Africa example: 27832573402');
+    if (!number) return alert('Enter a WhatsApp number first.');
+    if (number.startsWith('0') || number.length < 10) return alert('Use country code, no + and no leading 0.');
 
     isPairing = true;
     document.getElementById('pairBtn').disabled = true;
-
-    const progressContainer = document.getElementById('progressContainer');
-    const progressBar = document.getElementById('progressBar');
-    const pairingResult = document.getElementById('pairingResult');
-    const loadingText = document.getElementById('loadingText');
-
-    pairingResult.innerText = '';
+    document.getElementById('pairingResult').innerText = '';
     document.getElementById('copyCodeBtn').style.display = 'none';
-    loadingText.innerText = 'Connecting to WhatsApp...';
-    progressContainer.style.display = 'block';
-    progressBar.style.width = '0%';
+    document.getElementById('loadingText').style.color = '';
+    document.getElementById('loadingText').innerText = 'Connecting to WhatsApp...';
+    document.getElementById('progressContainer').style.display = 'block';
+    document.getElementById('progressBar').style.width = '0%';
+    setStep('stepB');
 
     let width = 0;
     const interval = setInterval(() => {
-      if (width >= 90) { clearInterval(interval); }
-      else { width += 2; progressBar.style.width = width + '%'; }
+      if (width >= 90) clearInterval(interval);
+      else { width += 2; document.getElementById('progressBar').style.width = width + '%'; }
     }, 100);
-
-    socket.emit('pair-request', { userId: currentUserId, number });
 
     fetch('/api/pair', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUserId, number })
+      body: JSON.stringify({ number })
     }).then(r => r.json()).then(data => {
       if (data && data.code) {
-        document.getElementById('progressContainer').style.display = 'none';
-        document.getElementById('loadingText').innerText = 'Enter this code in WhatsApp > Linked Devices > Link with phone number';
-        document.getElementById('pairingResult').innerText = data.code;
-        const copyBtn = document.getElementById('copyCodeBtn');
-        copyBtn.style.display = 'inline-flex';
-        copyBtn.onclick = () => {
-          navigator.clipboard?.writeText(data.code).then(() => {
-            copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied';
-            setTimeout(() => { copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy Code'; }, 1600);
-          });
-        };
-      } else if (data && data.error) {
-        document.getElementById('progressContainer').style.display = 'none';
-        document.getElementById('loadingText').innerText = data.error;
-        document.getElementById('loadingText').style.color = '#ff6b81';
-      }
+        showCode(data.code);
+        const poll = setInterval(() => {
+          fetch('/api/pair-status').then(r => r.json()).then(s => {
+            if (s && s.connected) {
+              clearInterval(poll);
+              socket.emit('connection-status', s);
+              const badge = document.getElementById('connectionStatus');
+              badge.className = 'status-badge connected';
+              badge.innerText = 'CONNECTED';
+              document.getElementById('stage1').classList.add('hidden');
+              document.getElementById('stage2').classList.remove('hidden');
+              setStep('stepC');
+            }
+          }).catch(() => {});
+        }, 2000);
+        setTimeout(() => clearInterval(poll), 120000);
+      } else showPairError((data && data.error) || 'Pairing failed');
     }).catch((e) => {
-      document.getElementById('loadingText').innerText = 'Could not reach pairing API: ' + e.message;
-      document.getElementById('loadingText').style.color = '#ff6b81';
-    }).finally(() => {
-      isPairing = false;
-      document.getElementById('pairBtn').disabled = false;
+      showPairError('Could not reach pairing API: ' + e.message);
     });
   };
 
   document.getElementById('logoutBtn').onclick = () => {
-    socket.emit('logout', currentUserId);
+    socket.emit('logout');
+    document.getElementById('stage2').classList.add('hidden');
+    document.getElementById('stage1').classList.remove('hidden');
+    document.getElementById('pairNumber').value = '';
+    document.getElementById('pairingResult').innerText = '';
+    document.getElementById('copyCodeBtn').style.display = 'none';
+    document.getElementById('loadingText').innerText = '';
     setStep('stepA');
   };
 </script>

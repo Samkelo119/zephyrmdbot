@@ -73,7 +73,7 @@ async function start() {
             await delay(1500);
         }
         try {
-            let code = await sock.requestPairingCode(NUMBER, 'ZEPHYRMD');
+            let code = await sock.requestPairingCode(NUMBER);
             code = code?.match(/.{1,4}/g)?.join('-') || code;
             pairingCodeSent = true;
             console.log('PAIRING_CODE=' + code);

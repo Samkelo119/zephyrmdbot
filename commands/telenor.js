@@ -5,7 +5,7 @@
 module.exports = async function telenor(sock, from, msg, args) {
     await sock.sendMessage(
         from,
-        { text: '⚠️ .telenor command abhi available nahi hai.' },
+        { text: '⚠️ The .telenor command is not available yet.' },
         { quoted: msg }
     );
 };

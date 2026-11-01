@@ -35,7 +35,8 @@ async function sysinfo(sock, from, msg) {
 }
 
 async function repo(sock, from, msg) {
-    await send(sock, from, msg, '*ZEPHYR MD*\nOwner: MrDieHardTechX\nWhatsApp: +27832573402\nChannel: https://whatsapp.com/channel/0029Vb8p6DV8aKvNTp6n8n45');
+    await send(sock, from, msg,
+        '*ZEPHYR MD*\nGitHub: https://github.com/Samkelo119/zephyrmdbot\nOwner: MrDieHardTechX\nWhatsApp: +27832573402\nChannel: https://whatsapp.com/channel/0029Vb8p6DV8aKvNTp6n8n45');
 }
 
 async function support(sock, from, msg) {

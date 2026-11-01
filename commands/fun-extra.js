@@ -17,11 +17,11 @@ const quotes = [
 ];
 
 const jokes = [
-    "Teacher: 'Beta bade ho kar kya bano ge?' Student: 'Bade!' 😂",
-    "Bank walon ne bola loan ke liye guarantor chahiye... mene apne dushman ka naam de diya. 🤣",
-    "Wife: Tum mujhe kitna pyaar karte ho? Husband: Utna jitna mera WiFi range hai. 📶😂",
-    "Doctor: Aapko sirf 2 din ki zindagi bachi hai. Patient: Phir bill kal dunga. 😅",
-    "Teacher: Newton ka teesra law bolo. Student: Sir mera bhi wahi hoga jo aapka last saal hua tha. 😂"
+    "Teacher: What do you want to be when you grow up? Student: Taller.",
+    "I told the bank I needed a loan guarantor. I gave them my rival's name.",
+    "Wife: How much do you love me? Husband: As far as my WiFi range.",
+    "Doctor: You have two days left. Patient: Then I will pay the bill tomorrow.",
+    "Why did the scarecrow win an award? He was outstanding in his field."
 ];
 
 const facts = [
@@ -33,9 +33,9 @@ const facts = [
 ];
 
 const eightBallReplies = [
-    "✅ Haan bilkul.", "✅ Yes, definitely.", "🤔 Shayad.", "❌ Nahi lagta.",
-    "❌ Bilkul nahi.", "🔮 Abhi clear nahi hai, dobara pucho.", "✅ Sau percent haan.",
-    "❌ Mujhe shak hai.", "🤔 Kuch kaha nahi ja sakta.", "✅ Sab signs 'haan' bol rahe hain."
+    "✅ Yes, absolutely.", "✅ Yes, definitely.", "🤔 Maybe.", "❌ I do not think so.",
+    "❌ Absolutely not.", "🔮 Unclear. Ask again.", "✅ One hundred percent yes.",
+    "❌ I doubt it.", "🤔 I cannot say.", "✅ All signs point to yes."
 ];
 
 function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -53,7 +53,7 @@ async function fact(sock, from, msg) {
 }
 
 async function eightball(sock, from, msg, q) {
-    if (!q) return sock.sendMessage(from, { text: '⚠️ Usage: `.8ball <sawal>`' }, { quoted: msg });
+    if (!q) return sock.sendMessage(from, { text: '⚠️ Usage: `.8ball <question>`' }, { quoted: msg });
     await sock.sendMessage(from, { text: `🎱 *Question:* ${q}\n🔮 *Answer:* ${rand(eightBallReplies)}` }, { quoted: msg });
 }
 
@@ -76,9 +76,9 @@ async function rps(sock, from, msg, q) {
         (userChoice === 'rock' && botChoice === 'scissors') ||
         (userChoice === 'paper' && botChoice === 'rock') ||
         (userChoice === 'scissors' && botChoice === 'paper')
-    ) result = "🎉 Tum jeet gaye!";
-    else result = "🤖 Bot jeet gaya!";
-    await sock.sendMessage(from, { text: `✊✋✌️ *RPS*\n\n👤 Tum: ${userChoice}\n🤖 Bot: ${botChoice}\n\n${result}` }, { quoted: msg });
+    ) result = "🎉 You win!";
+    else result = "🤖 Bot wins!";
+    await sock.sendMessage(from, { text: `✊✋✌️ *RPS*\n\n👤 You: ${userChoice}\n🤖 Bot: ${botChoice}\n\n${result}` }, { quoted: msg });
 }
 
 async function love(sock, from, msg, q) {
@@ -93,7 +93,7 @@ async function love(sock, from, msg, q) {
 
 async function ship(sock, from, msg) {
     const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
-    if (mentioned.length < 2) return sock.sendMessage(from, { text: '⚠️ Usage: 2 logon ko mention karo — `.ship @user1 @user2`' }, { quoted: msg });
+    if (mentioned.length < 2) return sock.sendMessage(from, { text: '⚠️ Usage: mention 2 people — `.ship @user1 @user2`' }, { quoted: msg });
     const [a, b] = mentioned;
     let seed = 0;
     for (const c of (a + b)) seed += c.charCodeAt(0);
@@ -145,7 +145,7 @@ async function repeat(sock, from, msg, args, q) {
 
 async function calc(sock, from, msg, q) {
     if (!q) return sock.sendMessage(from, { text: '⚠️ Usage: `.calc 12*5+3`' }, { quoted: msg });
-    if (!/^[0-9+\-*/().\s%]+$/.test(q)) return sock.sendMessage(from, { text: '❌ Sirf numbers aur + - * / ( ) % use karo.' }, { quoted: msg });
+    if (!/^[0-9+\-*/().\s%]+$/.test(q)) return sock.sendMessage(from, { text: '❌ Use only numbers and + - * / ( ) %.' }, { quoted: msg });
     try {
         const result = Function(`"use strict"; return (${q})`)();
         await sock.sendMessage(from, { text: `🧮 *Calculator*\n\n${q} = *${result}*` }, { quoted: msg });

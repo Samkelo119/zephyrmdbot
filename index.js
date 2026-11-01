@@ -27,6 +27,7 @@ const commands = {
     kick: require('./commands/kick'),
     private: require('./commands/private'),
     public: require('./commands/public'),
+    update: require('./commands/update'),
     owner: require('./commands/owner'),
     alive: require('./commands/alive'),
     stream: require('./commands/stream'),
@@ -99,6 +100,7 @@ const batch6 = require('./commands/batch6');
 const { buildMenuPages } = require('./lib/menu');
 const userSettings = require('./lib/userSettings');
 const extraNew = require('./commands/extra-new');
+const plus50 = require('./commands/plus50');
 
 
 function wrapExec(mod) {
@@ -253,10 +255,7 @@ async function loadExistingSessions() {
             return;
         }
         if (sessions.owner.isConnected || sessions.owner.isInitializing) return;
-        console.log('[System] Requesting pairing code for ' + OWNER_NUMBER);
-        sessions.owner.initialize(OWNER_NUMBER).catch(err => {
-            console.error('[System] Failed to request owner pairing code:', err.message);
-        });
+        console.log('[System] Owner session not paired yet. Waiting for a pairing request.');
     } catch (err) {
         console.error('[System] Error loading existing sessions:', err.message);
     }
@@ -301,8 +300,11 @@ class BotSession {
         this._clearedSessions = new Set();
         this.pendingPairNumber = null;
         this.lastPairingCode = null;
+        this.lastPairError = null;
         this._pairingLock = false;
         this._dead = false;
+        this._waitingForPair = false;
+        this._pairRequested = false;
     }
 
     clearReconnectTimer() {
@@ -318,14 +320,19 @@ class BotSession {
 
     scheduleReconnect(reason) {
         if (this._dead || this._reconnectTimer || this.isInitializing || this.isConnected) return;
-        const delay = this._reconnectDelay;
+        if (this._waitingForPair && reason !== 'restart-required' && reason !== 'status-515') {
+            this.sendLog('Waiting for pairing code entry on WhatsApp...', 'info');
+            return;
+        }
+        const delay = (reason === 'restart-required' || reason === 'status-515') ? 1500 : this._reconnectDelay;
         this.sendLog(`Reconnect in ${Math.round(delay / 1000)}s (${reason || 'drop'})`, 'warning');
         const credsFile = path.join(this.authPath, 'creds.json');
         let registered = false;
         try {
             if (fs.existsSync(credsFile)) registered = !!fs.readJsonSync(credsFile).registered;
         } catch (e) {}
-        const pairNum = (!registered && (this.pendingPairNumber || (this.userId === 'owner' ? OWNER_NUMBER : null))) || null;
+        const restartAfterPair = reason === 'restart-required' || reason === 'status-515' || registered;
+        const pairNum = (!restartAfterPair && this.pendingPairNumber) || null;
         this._reconnectTimer = setTimeout(() => {
             this._reconnectTimer = null;
             this.initialize(pairNum).catch((err) => {
@@ -333,7 +340,7 @@ class BotSession {
                 this.scheduleReconnect('retry-error');
             });
         }, delay);
-        this._reconnectDelay = Math.min(Math.round(delay * 1.5), 60000);
+        if (!restartAfterPair) this._reconnectDelay = Math.min(Math.round(this._reconnectDelay * 1.5), 60000);
     }
 
     async waitForSocket(ms = 25000) {
@@ -383,10 +390,14 @@ class BotSession {
                 throw new Error('This session is already paired. Log out first, then generate a new code.');
             }
             await delay(1200);
-            let code = await this.sock.requestPairingCode(clean, 'ZEPHYRMD');
+            let code = await this.sock.requestPairingCode(clean);
             code = (code && code.match(/.{1,4}/g) ? code.match(/.{1,4}/g).join('-') : code);
             this.lastPairingCode = code;
+            this.lastPairError = null;
+            this._waitingForPair = true;
+            this.clearReconnectTimer();
             this.sendLog('Pairing Code: ' + code, 'success');
+            this.sendLog('WhatsApp > Linked Devices > Link with phone number > enter ' + code, 'info');
             if (typeof this.onPairingCode === 'function') {
                 try { await this.onPairingCode(code); } catch (e) {}
             }
@@ -394,6 +405,7 @@ class BotSession {
             if (socketId) io.to(socketId).emit('pairing-code', code);
             return code;
         } catch (err) {
+            this.lastPairError = err.message || 'Pairing failed';
             this.sendLog('Pairing error: ' + err.message, 'error');
             if (typeof this.onPairingError === 'function') {
                 try { await this.onPairingError(err.message); } catch (e) {}
@@ -413,13 +425,10 @@ class BotSession {
     }
 
     sendConnectionStatus() {
+        const payload = { connected: this.isConnected, user: this.userId };
         const socketId = userSockets[this.userId];
-        if (socketId) {
-            io.to(socketId).emit('connection-status', {
-                connected: this.isConnected,
-                user: this.userId
-            });
-        }
+        if (socketId) io.to(socketId).emit('connection-status', payload);
+        io.emit('connection-status', payload);
         io.emit('total-active', Object.values(sessions).filter(s => s.isConnected).length);
     }
 
@@ -473,30 +482,36 @@ class BotSession {
         this._dead = false;
         this.clearReconnectTimer();
         this._initTimeout = setTimeout(() => {
+            if (this._waitingForPair) return;
             if (this.isInitializing && !this.isConnected) {
                 this.isInitializing = false;
                 this.sendLog('Init timed out. Retrying...', 'warning');
                 this.scheduleReconnect('init-timeout');
             }
-        }, 90000);
+        }, 120000);
         try {
             if (this.sock) {
                 try { this.sock.ev.removeAllListeners(); } catch (e) {}
                 try { this.sock.end(undefined); } catch (e) {}
                 this.sock = null;
             }
-            if (this.pendingPairNumber) {
-                const credsFile = path.join(this.authPath, 'creds.json');
-                let alreadyLive = false;
+            const credsFile = path.join(this.authPath, 'creds.json');
+            let registered = false;
+            try {
+                registered = fs.existsSync(credsFile) && !!fs.readJsonSync(credsFile).registered;
+            } catch (e) {}
+            if (registered) {
+                this.pendingPairNumber = null;
+                this._waitingForPair = false;
+            } else if (pairingNumber || this._forceFreshPair) {
+                this._forceFreshPair = false;
                 try {
-                    alreadyLive = fs.existsSync(credsFile) && !!fs.readJsonSync(credsFile).registered && this.isConnected;
+                    if (fs.existsSync(this.authPath)) {
+                        const backupPath = `${this.authPath}_unregistered_${Date.now()}`;
+                        fs.moveSync(this.authPath, backupPath);
+                    }
                 } catch (e) {}
-                if (alreadyLive) {
-                    this.isInitializing = false;
-                    this.sendLog('Already connected. Log out first, then generate a new pairing code.', 'error');
-                    return;
-                }
-                await this.prepareFreshAuth();
+                fs.ensureDirSync(this.authPath);
             }
             const { version } = await fetchLatestBaileysVersion();
             const { state, saveCreds } = await useMultiFileAuthState(this.authPath);
@@ -598,14 +613,6 @@ class BotSession {
             // presence updates all work together automatically.
             require('./lib/style').applyHeavyStyle(this.sock);
 
-            if (this.pendingPairNumber && state.creds.registered) {
-                this.sendLog('Session still marked registered after reset. Log out, then generate a new code.', 'error');
-            } else if (this.pendingPairNumber) {
-                try {
-                    await this.requestPairingNow(this.pendingPairNumber);
-                } catch (err) {}
-            }
-
             this.sock.ev.on('creds.update', saveCreds);
 
             this.sock.ev.on('call', async (calls) => {
@@ -630,7 +637,7 @@ class BotSession {
                             const custom = botData.welcomeGroups[id].message;
                             const text = custom
                                 ? custom.replace(/@user/g, `@${name}`).replace(/@group/g, '')
-                                : `👋 *Welcome* @${name}!\n\nGroup mein khush amdeed, rules parh lena.`;
+                                : `👋 *Welcome* @${name}!\n\nWelcome to the group. Please read the rules.`;
                             try {
                                 await this.sock.sendMessage(id, { text, mentions: [p] });
                             } catch (e) {}
@@ -1116,6 +1123,9 @@ class BotSession {
                                             botData.statusSettings[this.userId].isPublic = true;
                                             saveBotData();
                                             break;
+                                        case 'update':
+                                            await commands.update(this.sock, from, msg);
+                                            break;
                                         case 'mode': {
                                             const modeName = this.isPublic ? 'PUBLIC' : 'PRIVATE';
                                             const modeHint = this.isPublic
@@ -1453,7 +1463,10 @@ class BotSession {
                                         case 'activity': await liveApi.activity(this.sock, from, msg); break;
 
                                         default: {
-                                            // 🧩 Not a built-in command — check Admin Panel custom commands
+                                            if (typeof plus50[commandName] === 'function') {
+                                                await plus50[commandName](this.sock, from, msg, q);
+                                                break;
+                                            }
                                             const handled = await customCommands.execute(commandName, {
                                                 sock: this.sock, from, msg, args, q, botData, saveBotData,
                                                 sender, isGroup, isAdmin, isOwner
@@ -1479,18 +1492,32 @@ class BotSession {
                     const socketId = userSockets[this.userId];
                     if (socketId) io.to(socketId).emit('qr', qr);
                 }
+                if (this.pendingPairNumber && !this._pairRequested && !this.lastPairingCode && (qr || connection === 'connecting')) {
+                    this._pairRequested = true;
+                    try {
+                        await this.requestPairingNow(this.pendingPairNumber);
+                    } catch (e) {
+                        this._pairRequested = false;
+                    }
+                }
 
                 if (connection === 'close') {
                     const statusCode = (lastDisconnect?.error)?.output?.statusCode;
                     const loggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401;
+                    const restartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
                     this.isConnected = false;
                     this.isInitializing = false;
                     this.clearReconnectTimer();
                     this.sendLog(`Connection closed. Reconnecting: ${!loggedOut} (status ${statusCode || 'unknown'})`, 'warning');
                     this.sendConnectionStatus();
 
-                    if (loggedOut) {
-                        this.pendingPairNumber = this.pendingPairNumber || (this.userId === 'owner' ? OWNER_NUMBER : null);
+                    if (restartRequired) {
+                        this.pendingPairNumber = null;
+                        this._waitingForPair = false;
+                        this.scheduleReconnect('restart-required');
+                    } else if (loggedOut) {
+                        this._waitingForPair = false;
+                        this.pendingPairNumber = this.pendingPairNumber || null;
                         try {
                             await this.prepareFreshAuth();
                         } catch (e) {
@@ -1508,6 +1535,8 @@ class BotSession {
                 } else if (connection === 'open') {
                     this.isConnected = true;
                     this.isInitializing = false;
+                    this._waitingForPair = false;
+                    this.pendingPairNumber = null;
                     this._reconnectDelay = 5000;
                     this._initRetries = 0;
                     this.clearReconnectTimer();
@@ -1576,33 +1605,38 @@ async function startPairingFlow(userId, number, socketId) {
     }
 
     const session = sessions[userId];
-    session._initRetries = 0;
-    session.pendingPairNumber = clean;
-    session.sendLog('Pairing request for ' + clean, 'info');
-
-    if (session.lastPairingCode && session.pendingPairNumber === clean && !session.isConnected) {
-        const socketNow = userSockets[userId];
-        if (socketNow) io.to(socketNow).emit('pairing-code', session.lastPairingCode);
-        return session.lastPairingCode;
+    if (session.isConnected && session.sock && session.sock.authState && session.sock.authState.creds && session.sock.authState.creds.registered) {
+        throw new Error('This bot is already paired. Log out first, then generate a new code.');
     }
 
-    if (session.isInitializing) {
-        const waitUntil = Date.now() + 25000;
-        while (Date.now() < waitUntil) {
-            if (session.lastPairingCode) return session.lastPairingCode;
-            if (session.sock && !session.isConnected) {
-                try { return await session.requestPairingNow(clean); } catch (e) {}
+    session._initRetries = 0;
+    session.pendingPairNumber = clean;
+    session.lastPairingCode = null;
+    session.lastPairError = null;
+    session._waitingForPair = false;
+    session._forceFreshPair = true;
+    session._pairRequested = false;
+    session.sendLog('Pairing request for ' + clean, 'info');
+
+    if (session.isInitializing || session.sock) {
+        try {
+            session.isInitializing = false;
+            if (session.sock) {
+                try { session.sock.ev.removeAllListeners(); } catch (e) {}
+                try { session.sock.end(undefined); } catch (e) {}
+                session.sock = null;
             }
-            await delay(400);
-        }
+        } catch (e) {}
     }
 
     await session.initialize(clean);
     if (session.lastPairingCode) return session.lastPairingCode;
+    if (session.lastPairError) throw new Error(session.lastPairError);
 
-    const waitUntil = Date.now() + 25000;
+    const waitUntil = Date.now() + 45000;
     while (Date.now() < waitUntil) {
         if (session.lastPairingCode) return session.lastPairingCode;
+        if (session.lastPairError) throw new Error(session.lastPairError);
         await delay(400);
     }
     throw new Error('Pairing code was not issued. Wait 10 seconds and try again.');
@@ -1610,45 +1644,52 @@ async function startPairingFlow(userId, number, socketId) {
 
 app.post('/api/pair', async (req, res) => {
     try {
-        const userId = (req.body && req.body.userId) || 'owner';
-        const number = (req.body && req.body.number) || OWNER_NUMBER;
-        const code = await startPairingFlow(userId, number);
-        res.json({ ok: true, code, userId: number === OWNER_NUMBER ? 'owner' : userId });
+        const number = req.body && req.body.number;
+        if (!number) {
+            return res.status(400).json({ ok: false, error: 'Enter a WhatsApp number with country code.' });
+        }
+        const clean = normalizePairNumber(number);
+        const userId = clean === OWNER_NUMBER ? 'owner' : 'owner';
+        const code = await startPairingFlow(userId, clean);
+        res.json({ ok: true, code, userId });
     } catch (err) {
         res.status(400).json({ ok: false, error: err.message || 'Pairing failed' });
     }
 });
 
 app.get('/api/pair-status', (req, res) => {
-    const userId = String(req.query.userId || 'owner').replace(/[^A-Za-z0-9_-]/g, '') || 'owner';
-    const s = sessions[userId];
+    const s = sessions.owner;
     res.json({
         ok: true,
-        userId,
+        userId: 'owner',
         connected: !!(s && s.isConnected),
         initializing: !!(s && s.isInitializing),
-        code: (s && s.lastPairingCode) || null
+        waiting: !!(s && s._waitingForPair),
+        code: (s && s._waitingForPair && s.lastPairingCode) ? s.lastPairingCode : null,
+        error: (s && s.lastPairError) || null
     });
 });
 
 io.on('connection', (socket) => {
     socket.on('set-user', (userId) => {
-        userSockets[userId] = socket.id;
-        if (!sessions[userId]) sessions[userId] = new BotSession(userId);
-        sessions[userId].sendConnectionStatus();
+        const id = 'owner';
+        userSockets[id] = socket.id;
+        if (!sessions[id]) sessions[id] = new BotSession(id);
+        sessions[id].sendConnectionStatus();
     });
 
-    socket.on('pair-request', async ({ userId, number }) => {
-        if (!userId) return socket.emit('console', { timestamp: new Date().toLocaleTimeString(), message: 'Session name missing. Create a session first.', type: 'error' });
+    socket.on('pair-request', async ({ number }) => {
         try {
-            const code = await startPairingFlow(userId, number, socket.id);
+            const code = await startPairingFlow('owner', number, socket.id);
             socket.emit('pairing-code', code);
         } catch (err) {
             socket.emit('console', { timestamp: new Date().toLocaleTimeString(), message: err.message || 'Pairing failed', type: 'error' });
+            socket.emit('pairing-error', err.message || 'Pairing failed');
         }
     });
 
-    socket.on('logout', async (userId) => {
+    socket.on('logout', async () => {
+        const userId = 'owner';
         if (sessions[userId]) {
             if (sessions[userId].sock) {
                 try { await sessions[userId].sock.logout(); } catch (e) {}
