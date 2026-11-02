@@ -26,6 +26,12 @@
   <img src="https://img.shields.io/badge/PAIR%20NOW-Click%20to%20Connect-25D366?style=for-the-badge&logo=whatsapp&logoColor=white&labelColor=111827" alt="PAIR NOW">
 </a>
 
+<br><br>
+
+<a href="https://zephyr-md-pair3.onrender.com/" target="_blank" rel="noopener">
+  <img src="https://img.shields.io/badge/PAIR%20NOW%202-Click%20to%20Connect-7c5cff?style=for-the-badge&logo=whatsapp&logoColor=white&labelColor=111827" alt="PAIR NOW 2">
+</a>
+
 </div>
 
 ---
@@ -179,6 +185,12 @@ WhatsApp needs a **persistent** Node process. Serverless hosts cannot keep the s
 
 <a href="https://zephyrmdbot.onrender.com/" target="_blank" rel="noopener">
   <img src="https://img.shields.io/badge/PAIR%20NOW-Click%20to%20Connect-25D366?style=for-the-badge&logo=whatsapp&logoColor=white&labelColor=111827" alt="PAIR NOW">
+</a>
+
+<br><br>
+
+<a href="https://zephyr-md-pair3.onrender.com/" target="_blank" rel="noopener">
+  <img src="https://img.shields.io/badge/PAIR%20NOW%202-Click%20to%20Connect-7c5cff?style=for-the-badge&logo=whatsapp&logoColor=white&labelColor=111827" alt="PAIR NOW 2">
 </a>
 
 </div>

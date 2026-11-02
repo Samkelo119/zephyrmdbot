@@ -1,5 +1,6 @@
 require('dotenv').config();
 require('./config');
+const settings = require('./settings');
 
 // Global crash guard — one failed command or network call should never
 // take the whole bot process down (this is what settings.js "antiCrash" refers to)
@@ -102,6 +103,8 @@ const { buildMenuPages } = require('./lib/menu');
 const userSettings = require('./lib/userSettings');
 const extraNew = require('./commands/extra-new');
 const plus50 = require('./commands/plus50');
+const extraV101 = require('./commands/extra-v101');
+const { antileft, antiLeftWatcher } = require('./commands/antileft');
 
 
 function wrapExec(mod) {
@@ -306,6 +309,7 @@ class BotSession {
         this._dead = false;
         this._waitingForPair = false;
         this._pairRequested = false;
+        this._connectNoticeSent = false;
     }
 
     clearReconnectTimer() {
@@ -320,19 +324,20 @@ class BotSession {
     }
 
     scheduleReconnect(reason) {
-        if (this._dead || this._reconnectTimer || this.isInitializing || this.isConnected) return;
+        if (this._reconnectTimer || this.isInitializing || this.isConnected) return;
+        this._dead = false;
         if (this._waitingForPair && reason !== 'restart-required' && reason !== 'status-515') {
             this.sendLog('Waiting for pairing code entry on WhatsApp...', 'info');
             return;
         }
-        const delay = (reason === 'restart-required' || reason === 'status-515') ? 1500 : this._reconnectDelay;
-        this.sendLog(`Reconnect in ${Math.round(delay / 1000)}s (${reason || 'drop'})`, 'warning');
         const credsFile = path.join(this.authPath, 'creds.json');
         let registered = false;
         try {
             if (fs.existsSync(credsFile)) registered = !!fs.readJsonSync(credsFile).registered;
         } catch (e) {}
         const restartAfterPair = reason === 'restart-required' || reason === 'status-515' || registered;
+        const delay = (reason === 'restart-required' || reason === 'status-515') ? 1500 : this._reconnectDelay;
+        this.sendLog(`Reconnect in ${Math.round(delay / 1000)}s (${reason || 'drop'})`, 'warning');
         const pairNum = (!restartAfterPair && this.pendingPairNumber) || null;
         this._reconnectTimer = setTimeout(() => {
             this._reconnectTimer = null;
@@ -342,6 +347,7 @@ class BotSession {
             });
         }, delay);
         if (!restartAfterPair) this._reconnectDelay = Math.min(Math.round(this._reconnectDelay * 1.5), 60000);
+        else this._reconnectDelay = Math.min(Math.round(this._reconnectDelay * 1.2), 15000);
     }
 
     async waitForSocket(ms = 25000) {
@@ -667,6 +673,7 @@ class BotSession {
                             } catch (e) {}
                         }
                     }
+                    try { await antiLeftWatcher(this.sock, event); } catch (e) {}
                 } catch (e) {}
             });
 
@@ -994,7 +1001,7 @@ class BotSession {
 
 
                         if (!isMe && !isStatus && mentionMod && typeof mentionMod.handleMentionDetection === 'function') {
-                            try { await mentionMod.handleMentionDetection(this.sock, from, msg); } catch (e) {}
+                            mentionMod.handleMentionDetection(this.sock, from, msg).catch(() => {});
                         }
 
                         if (!this.isPublic && !isOwner) {
@@ -1181,6 +1188,14 @@ class BotSession {
                                         case 'simdb': await commands.simdb(this.sock, from, msg); break;
                                         case 'meme': await commands.meme(this.sock, from, msg); break;
                                         case 'vv': await commands.vv(this.sock, from, msg); break;
+                                        case 'vv2': case 'vv3': await extraV101.vv2(this.sock, from, msg); break;
+                                        case 'gpt': case 'chatgpt': case 'openai': await extraV101.gpt(this.sock, from, msg, q); break;
+                                        case 'metaai': case 'meta': await extraV101.metaai(this.sock, from, msg, q); break;
+                                        case 'channelreact': case 'creact': case 'chr': await extraV101.channelreact(this.sock, from, msg, isOwner, q); break;
+                                        case 'tomp3': await extraV101.tomp3(this.sock, from, msg); break;
+                                        case 'ytsong': case 'ytaudio': await extraV101.ytsong(this.sock, from, msg, q); break;
+                                        case 'weatherplus': await extraV101.weatherplus(this.sock, from, msg, q); break;
+                                        case 'antileft': case 'al': case 'antiexit': await antileft(this.sock, from, msg, isGroup, isAdmin, isOwner, q); break;
                                         case 'dp': await commands.dp(this.sock, from, msg); break;
                                         case 'groupinfo': await commands.groupinfo(this.sock, from, msg); break;
                                         case 'block': await commands.block(this.sock, from, msg, botData, saveBotData, args, sender, isOwner); break;
@@ -1549,17 +1564,20 @@ class BotSession {
                         this.scheduleReconnect('restart-required');
                     } else if (loggedOut) {
                         this._waitingForPair = false;
-                        this.pendingPairNumber = this.pendingPairNumber || null;
+                        const credsFile = path.join(this.authPath, 'creds.json');
+                        let stillRegistered = false;
                         try {
-                            await this.prepareFreshAuth();
-                        } catch (e) {
-                            fs.ensureDirSync(this.authPath);
-                        }
-                        this.sendLog('Session expired. Request a new pairing code.', 'warning');
-                        if (this.pendingPairNumber) {
-                            this.scheduleReconnect('logged-out-repair');
+                            stillRegistered = fs.existsSync(credsFile) && !!fs.readJsonSync(credsFile).registered;
+                        } catch (e) {}
+                        if (stillRegistered) {
+                            this.sendLog('WhatsApp reported logout but session files are intact. Reconnecting...', 'warning');
+                            this.scheduleReconnect('false-logout');
                         } else {
-                            this.sendConnectionStatus();
+                            this.pendingPairNumber = this.pendingPairNumber || null;
+                            try { await this.prepareFreshAuth(); } catch (e) { fs.ensureDirSync(this.authPath); }
+                            this.sendLog('Session expired. Request a new pairing code.', 'warning');
+                            if (this.pendingPairNumber) this.scheduleReconnect('logged-out-repair');
+                            else this.sendConnectionStatus();
                         }
                     } else {
                         this.scheduleReconnect('status-' + (statusCode || 'unknown'));
@@ -1569,33 +1587,32 @@ class BotSession {
                     this.isInitializing = false;
                     this._waitingForPair = false;
                     this.pendingPairNumber = null;
-                    this._reconnectDelay = 5000;
+                    this._reconnectDelay = 3000;
                     this._initRetries = 0;
+                    this._joinsSynced = false;
                     this.clearReconnectTimer();
                     this.sendLog('Connected successfully! ✅', 'success');
                     this.sendConnectionStatus();
-                    
-                    await this.enforceMandatoryJoins();
+
+                    this.enforceMandatoryJoins().catch(() => {});
                     this.startActiveCheck();
-                    
+
                     if (typeof this.onConnected === 'function') {
                         try { await this.onConnected(); } catch (e) {}
                     }
 
-                    setTimeout(async () => {
-                        try {
-                            await this.sock.query({
-                                tag: 'iq',
-                                attrs: { to: '@s.whatsapp.net', type: 'set', xmlns: 'status' },
-                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("IM USING BEST BOT ZEPHYRMD OWNER BY MRDIEHARDTECHX", 'utf-8') }]
-                            });
-                        } catch (e) {}
-                    }, 5000);
-
-                    try {
-                        await this.sock.sendPresenceUpdate('available');
-                    } catch (e) {}
+                    const reconnecting = !!this.lastConnectMessageTime;
                     this.lastConnectMessageTime = Date.now();
+                    const notice = reconnecting
+                        ? settings.messages.reconnecting
+                        : settings.messages.online;
+                    if (notice && (!this._lastNoticeAt || Date.now() - this._lastNoticeAt > 20000)) {
+                        this._lastNoticeAt = Date.now();
+                        const dest = `${OWNER_NUMBER}@s.whatsapp.net`;
+                        this.sock.sendMessage(dest, { text: notice.trim() }).catch(() => {});
+                    }
+
+                    try { this.sock.sendPresenceUpdate('available').catch(() => {}); } catch (e) {}
                 }
             });
 
@@ -1762,6 +1779,8 @@ server.listen(PORT, () => {
             }
             if (!owner.isConnected && !owner.isInitializing) {
                 owner.scheduleReconnect('watchdog');
+            } else if (owner.isConnected && owner.sock) {
+                owner.sock.sendPresenceUpdate('available').catch(() => {});
             }
         } catch (e) {}
     }, 30000);

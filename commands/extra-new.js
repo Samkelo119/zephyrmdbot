@@ -7,13 +7,13 @@ function send(sock, from, msg, text) {
 
 async function about(sock, from, msg) {
     await send(sock, from, msg,
-        '*ZEPHYR MD*\nVersion: V1.0.0\nOwner: MrDieHardTechX\nNumber: +27832573402\nType .menu for commands\nType .menustyle 1-17 to change menu font');
+        '*ZEPHYR MD*\nVersion: V1.0.1\nOwner: MrDieHardTechX\nNumber: +27832573402\nType .menu for commands\nType .menustyle 1-17 to change menu font');
 }
 
 async function botinfo(sock, from, msg) {
     const ram = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1);
     await send(sock, from, msg,
-        '*Bot Info*\nName: ZEPHYR MD\nVersion: V1.0.0\nOwner: MrDieHardTechX\nRuntime: ' + botClock.formatDuration(botClock.uptimeMs()) +
+        '*Bot Info*\nName: ZEPHYR MD\nVersion: V1.0.1\nOwner: MrDieHardTechX\nRuntime: ' + botClock.formatDuration(botClock.uptimeMs()) +
         '\nStarted: ' + botClock.startedLabel() +
         '\nRAM: ' + ram + ' MB\nNode: ' + process.version);
 }

@@ -5,7 +5,8 @@ module.exports = {
     // ==============================
 
     botName: "⚡ZᴇPʜʏʀ~Mᴅ⚡",
-    version: "1.0.0",
+    version: "1.0.1",
+    footer: "Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵",
 
     ownerName: "MʀDɪᴇHᴀʀᴅTᴇᴄʜX",
     ownerNumber: process.env.OWNER_NUMBER || "27832573402",
@@ -51,6 +52,20 @@ module.exports = {
 ✅ System Online
 🚀 Multi Device Active
 🛡️ Security Enabled
+📦 Version V1.0.1
+
+Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵
+╰━━━━━━━━━━━━━━━━╯
+        `,
+
+        reconnecting:
+        `
+╭━━━〔 ⚡ZᴇPʜʏʀ~Mᴅ⚡ 〕━━━╮
+
+🔄 Reconnecting
+🚀 Session restored
+🛡️ Stay online 24/7
+📦 Version V1.0.1
 
 Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵
 ╰━━━━━━━━━━━━━━━━╯
