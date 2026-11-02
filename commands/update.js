@@ -6,6 +6,14 @@ const ROOT = path.join(__dirname, '..');
 const REMOTE = 'origin';
 const BRANCH = 'main';
 
+function readPkgVersion() {
+    try {
+        return JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version || '';
+    } catch (e) {
+        return '';
+    }
+}
+
 function git(args, timeout = 90000) {
     return execFileSync('git', args, {
         cwd: ROOT,
@@ -14,6 +22,10 @@ function git(args, timeout = 90000) {
         env: { ...process.env, GIT_TERMINAL_PROMPT: '0' }
     }).trim();
 }
+
+let bootCommit = '';
+try { bootCommit = git(['rev-parse', 'HEAD']); } catch (e) {}
+const bootVersion = readPkgVersion();
 
 function npmInstall() {
     execFileSync('npm', ['install', '--no-audit', '--no-fund'], {
@@ -76,6 +88,8 @@ async function updateCommand(sock, from, msg) {
         }
 
         git(['fetch', REMOTE, BRANCH]);
+        let remoteHead = '';
+        try { remoteHead = git(['rev-parse', `${REMOTE}/${BRANCH}`]); } catch (e) {}
         git(['pull', '--ff-only', REMOTE, BRANCH]);
 
         if (stashed) {
@@ -84,16 +98,29 @@ async function updateCommand(sock, from, msg) {
         }
 
         const after = git(['rev-parse', 'HEAD']);
-        if (before === after) {
-            await sock.sendMessage(from, { text: "You're using the latest version." }, { quoted: msg });
+        const afterVersion = readPkgVersion();
+        const label = afterVersion ? `V${afterVersion}` : 'latest';
+        const alreadyOnDisk = before === after;
+        const processIsCurrent = bootCommit && after === bootCommit;
+
+        if (alreadyOnDisk && processIsCurrent) {
+            await sock.sendMessage(from, { text: `You're using the latest version (${label}).` }, { quoted: msg });
             return;
         }
 
-        const summary = git(['log', '--oneline', `${before}..${after}`]);
+        let summary = '';
+        try {
+            if (!alreadyOnDisk) summary = git(['log', '--oneline', `${before}..${after}`]);
+            else if (remoteHead && bootCommit && bootCommit !== after) {
+                summary = git(['log', '--oneline', `${bootCommit}..${after}`]);
+            }
+        } catch (e) {}
+
         const pkgPath = path.join(ROOT, 'package.json');
         let needNpm = false;
         try {
-            const beforePkg = git(['show', `${before}:package.json`]);
+            const cmp = bootCommit || before;
+            const beforePkg = git(['show', `${cmp}:package.json`]);
             const afterPkg = fs.readFileSync(pkgPath, 'utf8');
             needNpm = beforePkg !== afterPkg;
         } catch (e) {
@@ -105,7 +132,7 @@ async function updateCommand(sock, from, msg) {
         }
 
         await sock.sendMessage(from, {
-            text: `Updated.\n${shortLog(summary)}\n\nRestarting to load new commands.`
+            text: `Updated to ${label}.\n${shortLog(summary || 'Reloading running process.')}\n\nRestarting to load new commands.`
         }, { quoted: msg });
         scheduleRestart();
     } catch (err) {
