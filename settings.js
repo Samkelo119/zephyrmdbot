@@ -5,7 +5,7 @@ module.exports = {
     // ==============================
 
     botName: "⚡ZᴇPʜʏʀ~Mᴅ⚡",
-    version: "1.0.1",
+    version: "1.0.2",
     footer: "Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵",
 
     ownerName: "MʀDɪᴇHᴀʀᴅTᴇᴄʜX",
@@ -52,7 +52,7 @@ module.exports = {
 ✅ System Online
 🚀 Multi Device Active
 🛡️ Security Enabled
-📦 Version V1.0.1
+📦 Version V1.0.2
 
 Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵
 ╰━━━━━━━━━━━━━━━━╯
@@ -65,7 +65,7 @@ Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵
 🔄 Reconnecting
 🚀 Session restored
 🛡️ Stay online 24/7
-📦 Version V1.0.1
+📦 Version V1.0.2
 
 Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵
 ╰━━━━━━━━━━━━━━━━╯

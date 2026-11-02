@@ -107,6 +107,54 @@ const extraV101 = require('./commands/extra-v101');
 const { antileft, antiLeftWatcher } = require('./commands/antileft');
 
 
+async function sendPairingCodeCard(sock, jid, code, number, quoted) {
+    const display = String(code || '').trim();
+    const copyValue = display.replace(/[^A-Za-z0-9]/g, '');
+    const caption =
+`╭━━━〔 ⚡ZᴇPʜʏʀ~Mᴅ⚡ 〕━━━╮
+┃
+┃ 🔑 Pairing Code Ready
+┃ 📱 ${number}
+┃
+┃ *${display}*
+┃
+┃ Open WhatsApp
+┃ Linked Devices
+┃ Link with phone number
+┃ Enter this code within 60s
+┃
+╰━━━〔 Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵 〕━━━╯`;
+    try {
+        const msg = generateWAMessageFromContent(jid, {
+            viewOnceMessage: {
+                message: {
+                    messageContextInfo: {
+                        deviceListMetadataVersion: 2,
+                        deviceListMetadata: {}
+                    },
+                    interactiveMessage: proto.Message.InteractiveMessage.create({
+                        body: proto.Message.InteractiveMessage.Body.create({ text: caption }),
+                        footer: proto.Message.InteractiveMessage.Footer.create({ text: 'Tap COPY CODE then paste in WhatsApp' }),
+                        nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
+                            buttons: [{
+                                name: 'cta_copy',
+                                buttonParamsJson: JSON.stringify({
+                                    display_text: 'COPY CODE',
+                                    id: 'copy_pair_code',
+                                    copy_code: copyValue
+                                })
+                            }]
+                        })
+                    })
+                }
+            }
+        }, { userJid: sock.user && sock.user.id, quoted });
+        await sock.relayMessage(jid, msg.message, { messageId: msg.key.id });
+    } catch (e) {
+        await sock.sendMessage(jid, { text: caption + '\n\nCOPY CODE: `' + copyValue + '`' }, { quoted });
+    }
+}
+
 function wrapExec(mod) {
     if (typeof mod === 'function') return mod;
     return async (sock, from, msg, args, extra) => {
@@ -1132,13 +1180,13 @@ class BotSession {
                                             await this.sock.sendMessage(from, { text: `🔑 Generating pairing code for ${numberToPair}...` }, { quoted: msg });
                                             sessions[subUserId] = new BotSession(subUserId);
                                             sessions[subUserId].onPairingCode = async (code) => {
-                                                await this.sock.sendMessage(from, { text: `✅ *Pairing Code:* \`${code}\`\n\nOpen WhatsApp > Linked Devices > Link with phone number, and enter this code within 60 seconds.` }, { quoted: msg });
+                                                await sendPairingCodeCard(this.sock, from, code, numberToPair, msg);
                                             };
                                             sessions[subUserId].onPairingError = async (message) => {
                                                 await this.sock.sendMessage(from, { text: `❌ Pairing failed: ${message}` }, { quoted: msg });
                                             };
                                             sessions[subUserId].onConnected = async () => {
-                                                await this.sock.sendMessage(from, { text: `✅ ${numberToPair} connected successfully!` }, { quoted: msg });
+                                                await this.sock.sendMessage(from, { text: `✅ ${numberToPair} connected successfully!\n\nPᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵` }, { quoted: msg });
                                             };
                                             await sessions[subUserId].initialize(numberToPair);
                                             break;
