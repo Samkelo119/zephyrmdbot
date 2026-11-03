@@ -48,4 +48,17 @@ if (needsInstall()) {
 }
 
 console.log('Starting ZᴇPʜʏʀMᴅ Bot...\n');
-require('./index.js');
+
+function startBot() {
+    try {
+        require('./index.js');
+    } catch (err) {
+        console.error('Bot crashed at startup:', err && err.stack ? err.stack : err);
+        setTimeout(() => {
+            try { delete require.cache[require.resolve('./index.js')]; } catch (e) {}
+            startBot();
+        }, 4000);
+    }
+}
+
+startBot();

@@ -399,34 +399,50 @@ class BotSession {
         }
     }
 
+    hasRegisteredCreds() {
+        try {
+            const credsFile = path.join(this.authPath, 'creds.json');
+            return fs.existsSync(credsFile) && !!fs.readJsonSync(credsFile).registered;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    socketAlive() {
+        try {
+            const ws = this.sock && this.sock.ws;
+            if (!ws) return false;
+            return !!(ws.isOpen || ws.readyState === 1 || (ws.socket && ws.socket.readyState === 1));
+        } catch (e) {
+            return false;
+        }
+    }
+
     scheduleReconnect(reason) {
-        if (this.isInitializing) return;
-        if (this.isConnected && reason !== 'keepalive' && reason !== 'watchdog') return;
         this._dead = false;
-        if (this._waitingForPair && reason !== 'restart-required' && reason !== 'status-515') {
+        if (this._waitingForPair && this.socketAlive() && reason !== 'restart-required' && reason !== 'status-515') {
             this.sendLog('Waiting for pairing code entry on WhatsApp...', 'info');
             return;
         }
+        if (this.isInitializing) return;
+        if (this.isConnected && this.socketAlive()) return;
         if (this._reconnectTimer) return;
-        const credsFile = path.join(this.authPath, 'creds.json');
-        let registered = false;
-        try {
-            if (fs.existsSync(credsFile)) registered = !!fs.readJsonSync(credsFile).registered;
-        } catch (e) {}
+        const registered = this.hasRegisteredCreds();
         const restartAfterPair = reason === 'restart-required' || reason === 'status-515' || registered;
-        const delay = (reason === 'restart-required' || reason === 'status-515') ? 1500 : this._reconnectDelay;
+        const delay = (reason === 'restart-required' || reason === 'status-515') ? 1200 : this._reconnectDelay;
         this.sendLog(`Reconnect in ${Math.round(delay / 1000)}s (${reason || 'drop'})`, 'warning');
         const pairNum = (!restartAfterPair && this.pendingPairNumber) || null;
         this._reconnectTimer = setTimeout(() => {
             this._reconnectTimer = null;
-            if (this.isConnected || this.isInitializing) return;
+            if (this.isInitializing) return;
+            if (this.isConnected && this.socketAlive()) return;
             this.initialize(pairNum).catch((err) => {
                 this.sendLog('Reconnect failed: ' + err.message, 'error');
                 this.scheduleReconnect('retry-error');
             });
         }, delay);
-        if (!restartAfterPair) this._reconnectDelay = Math.min(Math.round(this._reconnectDelay * 1.5), 30000);
-        else this._reconnectDelay = Math.min(Math.round(this._reconnectDelay * 1.2), 10000);
+        if (registered) this._reconnectDelay = Math.min(Math.round(this._reconnectDelay * 1.2), 15000);
+        else this._reconnectDelay = Math.min(Math.round(this._reconnectDelay * 1.5), 30000);
     }
 
     async waitForSocket(ms = 25000) {
@@ -552,19 +568,16 @@ class BotSession {
 
     startActiveCheck() {
         if (this.activeInterval) clearInterval(this.activeInterval);
-        this.activeInterval = setInterval(async () => {
-            if (this.isConnected && this.sock?.user) {
-                try {
-                    await this.sock.sendPresenceUpdate('available');
-                } catch (e) {
-                    this.sendLog('Keep-alive presence failed: ' + e.message, 'error');
-                    this.isConnected = false;
-                    if (!this.isInitializing) this.scheduleReconnect('keepalive');
-                }
-            } else if (!this.isConnected && !this.isInitializing && !this._waitingForPair) {
-                this.scheduleReconnect('keepalive-drop');
+        this.activeInterval = setInterval(() => {
+            if (this._waitingForPair || this.isInitializing) return;
+            if (!this.hasRegisteredCreds()) return;
+            if (this.socketAlive()) {
+                this.isConnected = true;
+                return;
             }
-        }, 30 * 1000);
+            this.isConnected = false;
+            this.scheduleReconnect('socket-dead');
+        }, 25000);
     }
 
     async initialize(pairingNumber = null) {
@@ -577,13 +590,13 @@ class BotSession {
         this._dead = false;
         this.clearReconnectTimer();
         this._initTimeout = setTimeout(() => {
-            if (this._waitingForPair) return;
+            if (this._waitingForPair && this.socketAlive()) return;
             if (this.isInitializing && !this.isConnected) {
                 this.isInitializing = false;
                 this.sendLog('Init timed out. Retrying...', 'warning');
                 this.scheduleReconnect('init-timeout');
             }
-        }, 120000);
+        }, 45000);
         try {
             if (this.sock) {
                 try { this.sock.ev.removeAllListeners(); } catch (e) {}
@@ -622,13 +635,13 @@ class BotSession {
                 browser: this.pendingPairNumber ? Browsers.macOS('Chrome') : Browsers.ubuntu('Chrome'),
                 syncFullHistory: false,
                 shouldSyncHistoryMessage: () => false,
-                markOnlineOnConnect: true,
-                keepAliveIntervalMs: 20000,
+                markOnlineOnConnect: false,
+                keepAliveIntervalMs: 25000,
                 connectTimeoutMs: 60000,
-                defaultQueryTimeoutMs: 60000,
-                emitOwnEvents: true,
-                retryRequestDelayMs: 30000,
-                maxMsgRetryCount: 0,
+                defaultQueryTimeoutMs: undefined,
+                emitOwnEvents: false,
+                retryRequestDelayMs: 250,
+                maxMsgRetryCount: 2,
                 linkPreviewImageThumbnailWidth: 192,
                 transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 3000 },
                 // 🐛 CRITICAL FIX — this was the real source of the unlimited
@@ -666,17 +679,6 @@ class BotSession {
                 const skipKeys = ['react', 'delete', 'edit', 'poll', 'pin'];
                 const shouldSkip = content && typeof content === 'object' &&
                     skipKeys.some(k => Object.prototype.hasOwnProperty.call(content, k));
-
-                if (!shouldSkip) {
-                    // Presence is cosmetic — never block the actual reply on it.
-                    // A full round-trip here was adding 200-800 ms to every single
-                    // outgoing message, which is exactly why commands felt slow.
-                    const now = Date.now();
-                    if (!this._lastPresence || now - this._lastPresence > 30000) {
-                        this._lastPresence = now;
-                        this.sock.sendPresenceUpdate('available').catch(() => {});
-                    }
-                }
 
                 let payload = content;
                 if (content && typeof content === 'object') {
@@ -1648,7 +1650,7 @@ class BotSession {
                     this.isConnected = false;
                     this.isInitializing = false;
                     this.clearReconnectTimer();
-                    this.sendLog(`Connection closed. Reconnecting: ${!loggedOut} (status ${statusCode || 'unknown'})`, 'warning');
+                    this.sendLog(`Connection closed. Reconnecting (status ${statusCode || 'unknown'})`, 'warning');
                     this.sendConnectionStatus();
 
                     if (restartRequired) {
@@ -1657,17 +1659,10 @@ class BotSession {
                         this.scheduleReconnect('restart-required');
                     } else if (loggedOut) {
                         this._waitingForPair = false;
-                        const credsFile = path.join(this.authPath, 'creds.json');
-                        let stillRegistered = false;
-                        try {
-                            stillRegistered = fs.existsSync(credsFile) && !!fs.readJsonSync(credsFile).registered;
-                        } catch (e) {}
-                        if (stillRegistered) {
+                        if (this.hasRegisteredCreds()) {
                             this.sendLog('WhatsApp reported logout but session files are intact. Reconnecting...', 'warning');
                             this.scheduleReconnect('false-logout');
                         } else {
-                            this.pendingPairNumber = this.pendingPairNumber || null;
-                            try { await this.prepareFreshAuth(); } catch (e) { fs.ensureDirSync(this.authPath); }
                             this.sendLog('Session expired. Request a new pairing code.', 'warning');
                             if (this.pendingPairNumber) this.scheduleReconnect('logged-out-repair');
                             else this.sendConnectionStatus();
@@ -1705,7 +1700,6 @@ class BotSession {
                         this.sock.sendMessage(dest, { text: notice.trim() }).catch(() => {});
                     }
 
-                    try { this.sock.sendPresenceUpdate('available').catch(() => {}); } catch (e) {}
                 }
             });
 
@@ -1715,10 +1709,8 @@ class BotSession {
             // so a pairing request that hit a startup error never produced a code.
             this.sendLog(`❌ Init error: ${err.message}`, 'error');
             this._initRetries = (this._initRetries || 0) + 1;
-            const credsFile = path.join(this.authPath, 'creds.json');
-            const hasSession = fs.existsSync(credsFile);
-            if (hasSession || this._initRetries <= 3) {
-                this.scheduleReconnect(hasSession ? 'init-error' : 'pair-retry');
+            if (this.hasRegisteredCreds() || this._initRetries <= 8) {
+                this.scheduleReconnect(this.hasRegisteredCreds() ? 'init-error' : 'pair-retry');
             }
         }
     }
@@ -1860,29 +1852,22 @@ server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     loadExistingSessions();
     
-    setInterval(async () => {
+    setInterval(() => {
         try {
-            await axios.get(`http://127.0.0.1:${PORT}/`, { timeout: 8000 });
+            axios.get(`http://127.0.0.1:${PORT}/`, { timeout: 8000 }).catch(() => {});
         } catch (e) {}
         try {
             loadExistingSessions();
             for (const session of Object.values(sessions)) {
-                if (!session) continue;
-                let registered = false;
-                try {
-                    const credsFile = path.join(session.authPath, 'creds.json');
-                    registered = fs.existsSync(credsFile) && !!fs.readJsonSync(credsFile).registered;
-                } catch (e) {}
-                if (!registered) continue;
-                if (!session.isConnected && !session.isInitializing && !session._waitingForPair) {
-                    session.scheduleReconnect('watchdog');
-                } else if (session.isConnected && session.sock) {
-                    session.sock.sendPresenceUpdate('available').catch(() => {
-                        session.isConnected = false;
-                        session.scheduleReconnect('presence-fail');
-                    });
+                if (!session || session._waitingForPair || session.isInitializing) continue;
+                if (!session.hasRegisteredCreds()) continue;
+                if (session.socketAlive()) {
+                    session.isConnected = true;
+                    continue;
                 }
+                session.isConnected = false;
+                session.scheduleReconnect('watchdog');
             }
         } catch (e) {}
-    }, 20000);
+    }, 15000);
 });
