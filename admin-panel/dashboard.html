@@ -101,8 +101,9 @@
 
     <div class="panel" id="panel-users">
         <div class="card">
-            <h3>Connected Sessions</h3>
-            <table id="usersTable"><thead><tr><th>User</th><th>Status</th><th>Public</th><th>Ban</th></tr></thead><tbody></tbody></table>
+            <h3>All Active Sessions</h3>
+            <p class="small" style="margin-bottom:10px;">Every paired bot session, online or reconnecting. Refresh this tab to update.</p>
+            <table id="usersTable"><thead><tr><th>Session</th><th>Number</th><th>Status</th><th>Public</th><th>Ban</th></tr></thead><tbody></tbody></table>
         </div>
         <div class="card">
             <h3>Ban a Number Manually</h3>
@@ -329,6 +330,13 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
     window.location.href = '/admin';
 });
 
+function sessionStatusLabel(u) {
+    if (u.connected) return { cls: 'on', text: 'Online' };
+    if (u.waitingForPair) return { cls: 'off', text: 'Waiting pair' };
+    if (u.initializing) return { cls: 'off', text: 'Connecting' };
+    return { cls: 'off', text: 'Offline' };
+}
+
 async function loadOverview() {
     const d = await api('/admin/api/overview');
     if (!d.ok) return;
@@ -338,23 +346,31 @@ async function loadOverview() {
         <div class="stat"><div class="num">${d.knownUsers}</div><div class="label">DM Users</div></div>
         <div class="stat"><div class="num">${d.bannedUsers}</div><div class="label">Banned Users</div></div>
         <div class="stat"><div class="num">${Math.floor(d.uptimeSeconds / 3600)}h</div><div class="label">Uptime</div></div>`;
-    document.getElementById('overviewExtra').innerHTML = `Bot: ${d.botName} · Version: ${d.version}`;
+    const sessionLines = (d.sessions || []).map(s => {
+        const st = sessionStatusLabel(s);
+        return `${s.userId}${s.phone ? ' (' + s.phone + ')' : ''} — ${st.text}`;
+    }).join('<br>') || 'No sessions yet.';
+    document.getElementById('overviewExtra').innerHTML = `Bot: ${d.botName} · Version: ${d.version}<br><br>Sessions:<br>${sessionLines}`;
 }
 
 async function loadUsers() {
     const d = await api('/admin/api/users');
     if (!d.ok) return;
     const tbody = document.querySelector('#usersTable tbody');
-    tbody.innerHTML = d.users.map(u => `
+    tbody.innerHTML = d.users.map(u => {
+        const st = sessionStatusLabel(u);
+        return `
         <tr>
             <td>${u.userId}</td>
-            <td><span class="pill ${u.connected ? 'on' : 'off'}">${u.connected ? 'Online' : 'Offline'}</span></td>
+            <td>${u.phone || '-'}</td>
+            <td><span class="pill ${st.cls}">${st.text}</span></td>
             <td>${u.isPublic ? 'Public' : 'Private'}</td>
             <td>${u.banned
                 ? `<span class="pill banned">Banned</span> <button class="toggle-btn" onclick="unban('${u.userId}')">Unban</button>`
                 : `<button class="toggle-btn" onclick="ban('${u.userId}')">Ban</button>`}
             </td>
-        </tr>`).join('') || '<tr><td colspan="4" class="small">No sessions yet.</td></tr>';
+        </tr>`;
+    }).join('') || '<tr><td colspan="5" class="small">No sessions yet.</td></tr>';
 }
 
 async function ban(jid) { await api('/admin/api/ban', { method: 'POST', body: JSON.stringify({ jid }) }); toast('Banned'); loadUsers(); }

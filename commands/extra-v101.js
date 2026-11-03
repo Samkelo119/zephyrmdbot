@@ -18,6 +18,21 @@ async function downloadQuotedMedia(quoted, type) {
 
 async function gpt(sock, from, msg, q) {
     if (!q) return send(sock, from, msg, 'Please provide a message for the AI.\nExample: `.gpt Hello`');
+    const apiKey = require('../lib/apiKeys').get('openaiApiKey');
+    if (apiKey) {
+        try {
+            const { data } = await axios.post('https://api.openai.com/v1/chat/completions', {
+                model: 'gpt-3.5-turbo',
+                messages: [{ role: 'user', content: q }],
+                max_tokens: 400
+            }, {
+                timeout: 25000,
+                headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' }
+            });
+            const text = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+            if (text) return send(sock, from, msg, `*AI Response:*\n\n${text.trim()}`);
+        } catch (e) {}
+    }
     try {
         const { data } = await axios.get(`https://lance-frank-asta.onrender.com/api/gpt?q=${encodeURIComponent(q)}`, { timeout: 25000 });
         if (!data || !data.message) return send(sock, from, msg, 'AI failed to respond. Please try again later.');
