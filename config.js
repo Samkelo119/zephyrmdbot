@@ -9,7 +9,7 @@ global.chid = '120363409420355330@newsletter';
 global.chname = '⚡ZᴇPʜʏʀ~Mᴅ⚡';
 
 global.ownerNumbers = [];
-global.primaryOwnerNumber = '27832573402';
+global.primaryOwnerNumber = '27621834910';
 
 
 

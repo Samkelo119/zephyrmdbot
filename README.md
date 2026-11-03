@@ -16,7 +16,7 @@
 [![Node](https://img.shields.io/badge/Node.js-20%2B-00ffb3?style=for-the-badge&logo=nodedotjs&logoColor=black)](https://nodejs.org)
 [![Baileys](https://img.shields.io/badge/Baileys-MD-7c5cff?style=for-the-badge)](https://github.com/WhiskeySockets/Baileys)
 [![License](https://img.shields.io/badge/License-Private-111827?style=for-the-badge)](https://github.com/Samkelo119/zephyrmdbot)
-[![Owner](https://img.shields.io/badge/Owner-27832573402-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://wa.me/27832573402)
+[![Owner](https://img.shields.io/badge/Owner-27621834910-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://wa.me/27621834910)
 
 [WhatsApp Channel](https://whatsapp.com/channel/0029Vb8p6DV8aKvNTp6n8n45) · [Pairing Console](#-quick-start) · [Commands](#-command-map)
 
@@ -130,7 +130,7 @@ Type `.menu` in WhatsApp for the live list with your prefix and font.
 
 | Variable | Purpose | Default |
 | :--- | :--- | :--- |
-| `OWNER_NUMBER` | Owner WhatsApp (no `+`) | `27832573402` |
+| `OWNER_NUMBER` | Owner WhatsApp (no `+`) | `27621834910` |
 | `PORT` | Pairing / admin port | `3000` |
 | `ADMIN_PANEL_PASSWORD` | `/admin` login | set your own |
 | `OPENAI_API_KEY` | `.ai` (optional) | unset |
@@ -175,7 +175,7 @@ WhatsApp needs a **persistent** Node process. Serverless hosts cannot keep the s
 | :--- | :--- |
 | Bot | ZEPHYR MD |
 | Owner | MʀDɪᴇHᴀʀᴅTᴇᴄʜX |
-| Number | [27832573402](https://wa.me/27832573402) |
+| Number | [27621834910](https://wa.me/27621834910) |
 | Channel | [whatsapp.com/channel/0029Vb8p6DV8aKvNTp6n8n45](https://whatsapp.com/channel/0029Vb8p6DV8aKvNTp6n8n45) |
 | Repo | [Samkelo119/zephyrmdbot](https://github.com/Samkelo119/zephyrmdbot) |
 

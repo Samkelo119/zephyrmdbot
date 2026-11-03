@@ -26,7 +26,7 @@ async function banumber(sock, from, msg, q) {
 async function banchecker(sock, from, msg, q) {
     const number = digits(q);
     if (!number || number.length < 8) {
-        return sock.sendMessage(from, { text: 'Usage: .banchecker 27832573402' }, { quoted: msg });
+        return sock.sendMessage(from, { text: 'Usage: .banchecker 27621834910' }, { quoted: msg });
     }
     try {
         const jid = number + '@s.whatsapp.net';

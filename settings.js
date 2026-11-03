@@ -9,7 +9,7 @@ module.exports = {
     footer: "Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵",
 
     ownerName: "MʀDɪᴇHᴀʀᴅTᴇᴄʜX",
-    ownerNumber: process.env.OWNER_NUMBER || "27832573402",
+    ownerNumber: process.env.OWNER_NUMBER || "27621834910",
 
     // Bot Status
     prefix: ".",

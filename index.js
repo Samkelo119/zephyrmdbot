@@ -278,7 +278,7 @@ registerAdminPanel(app, {
     customCommands, globalLogBuffer
 });
 
-const OWNER_NUMBER = '27832573402';
+const OWNER_NUMBER = '27621834910';
 
 function credsPhone(credsPath) {
     try {
@@ -1203,7 +1203,7 @@ class BotSession {
                                             }
                                             const numberToPair = (args[0] || '').replace(/[^0-9]/g, '');
                                             if (!numberToPair) {
-                                                await this.sock.sendMessage(from, { text: "Usage: .pair 27832573402\nUse country code, no + or leading 0." }, { quoted: msg });
+                                                await this.sock.sendMessage(from, { text: "Usage: .pair 27621834910\nUse country code, no + or leading 0." }, { quoted: msg });
                                                 break;
                                             }
                                             const subUserId = numberToPair === OWNER_NUMBER ? 'owner' : `${this.userId}_${numberToPair}`;
@@ -1738,7 +1738,7 @@ async function startPairingFlow(userId, number, socketId) {
     if (!sessions[userId]) sessions[userId] = new BotSession(userId);
 
     if (!clean || clean.startsWith('0') || clean.length < 10 || clean.length > 15) {
-        throw new Error('Invalid number. Use country code without + or leading 0. Example: 27832573402');
+        throw new Error('Invalid number. Use country code without + or leading 0. Example: 27621834910');
     }
 
     if (!botData.statusSettings[userId]) {

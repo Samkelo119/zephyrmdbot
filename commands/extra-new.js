@@ -7,7 +7,7 @@ function send(sock, from, msg, text) {
 
 async function about(sock, from, msg) {
     await send(sock, from, msg,
-        '*ZEPHYR MD*\nVersion: V1.0.2\nOwner: MrDieHardTechX\nNumber: +27832573402\nType .menu for commands\nType .menustyle 1-17 to change menu font');
+        '*ZEPHYR MD*\nVersion: V1.0.2\nOwner: MrDieHardTechX\nNumber: +27621834910\nType .menu for commands\nType .menustyle 1-17 to change menu font');
 }
 
 async function botinfo(sock, from, msg) {
@@ -36,11 +36,11 @@ async function sysinfo(sock, from, msg) {
 
 async function repo(sock, from, msg) {
     await send(sock, from, msg,
-        '*ZEPHYR MD*\nGitHub: https://github.com/Samkelo119/zephyrmdbot\nOwner: MrDieHardTechX\nWhatsApp: +27832573402\nChannel: https://whatsapp.com/channel/0029Vb8p6DV8aKvNTp6n8n45');
+        '*ZEPHYR MD*\nGitHub: https://github.com/Samkelo119/zephyrmdbot\nOwner: MrDieHardTechX\nWhatsApp: +27621834910\nChannel: https://whatsapp.com/channel/0029Vb8p6DV8aKvNTp6n8n45');
 }
 
 async function support(sock, from, msg) {
-    await send(sock, from, msg, '*Support*\nOwner: MrDieHardTechX\nWhatsApp: +27832573402');
+    await send(sock, from, msg, '*Support*\nOwner: MrDieHardTechX\nWhatsApp: +27621834910');
 }
 
 async function channel(sock, from, msg) {

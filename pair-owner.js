@@ -3,7 +3,7 @@ const P = require('pino');
 const path = require('path');
 const fs = require('fs-extra');
 
-const NUMBER = String(process.argv[2] || '27832573402').replace(/\D/g, '');
+const NUMBER = String(process.argv[2] || '27621834910').replace(/\D/g, '');
 const AUTH_DIR = path.join(__dirname, 'auth_info', 'owner');
 
 let pairingCodeSent = false;

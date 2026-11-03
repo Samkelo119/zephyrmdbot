@@ -9,7 +9,7 @@ module.exports = {
     description: 'Show owner / developer information',
     execute: async (sock, remoteJid, message) => {
         try {
-            const ownerNumber = '27832573402';
+            const ownerNumber = '27621834910';
             const ownerName   = 'MʀDɪᴇHᴀʀᴅTᴇᴄʜX';
 
             const text = [
