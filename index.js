@@ -295,10 +295,38 @@ function ownerCredsLive() {
     if (!fs.existsSync(credsFile)) return false;
     try {
         const creds = JSON.parse(fs.readFileSync(credsFile, 'utf8'));
-        return !!(creds.registered && credsPhone(credsFile) === OWNER_NUMBER);
+        return !!(creds.registered);
     } catch (e) {
         return false;
     }
+}
+
+function sessionIdForNumber(number) {
+    const clean = String(number || '').replace(/\D/g, '');
+    if (!clean) return 'owner';
+    if (clean === OWNER_NUMBER) return 'owner';
+    return 'user_' + clean;
+}
+
+let _pairedCache = { at: 0, nums: new Set([OWNER_NUMBER]) };
+function allPairedNumbers() {
+    if (Date.now() - _pairedCache.at < 8000) return _pairedCache.nums;
+    const nums = new Set([OWNER_NUMBER]);
+    try {
+        for (const id of listAuthSessionIds()) {
+            const phone = credsPhone(path.join(AUTH_DIR, id, 'creds.json'));
+            if (phone) nums.add(phone);
+        }
+    } catch (e) {}
+    for (const session of Object.values(sessions)) {
+        try {
+            const id = session && session.sock && session.sock.user && session.sock.user.id;
+            const phone = String(id || '').split(':')[0].split('@')[0].replace(/\D/g, '');
+            if (phone) nums.add(phone);
+        } catch (e) {}
+    }
+    _pairedCache = { at: Date.now(), nums };
+    return nums;
 }
 
 function listAuthSessionIds() {
@@ -367,7 +395,7 @@ class BotSession {
         this.isConnected = false;
         this.aiEnabled = false; 
         this.autoReact = botData.statusSettings[userId]?.autoReact || false;
-        this.isPublic = botData.statusSettings[userId]?.isPublic !== false; 
+        this.isPublic = true; 
         this.authPath = path.join(AUTH_DIR, userId);
         this.processedMessages = new Set();
         this.activeInterval = null;
@@ -847,6 +875,8 @@ class BotSession {
                         }
                         const ownerNums = [OWNER_NUMBER, global.primaryOwnerNumber, ...(global.ownerNumbers || [])].filter(Boolean);
                         const senderDigits = String(sender).replace(/\D/g, '');
+                        const pairedNums = allPairedNumbers();
+                        const isPairedUser = pairedNums.has(senderDigits) || [...pairedNums].some(n => sender.includes(String(n)));
                         const isOwner = isMe
                             || sender === botNumber
                             || (botLid && (sender === botLid || from === botLid))
@@ -1088,7 +1118,7 @@ class BotSession {
                             mentionMod.handleMentionDetection(this.sock, from, msg).catch(() => {});
                         }
 
-                        if (!this.isPublic && !isOwner) {
+                        if (!this.isPublic && !isOwner && !isPairedUser) {
                             const peek = commandConfig.extractCommand(text, userPrefix);
                             if (!peek || peek.commandName !== 'mode') return;
                         }
@@ -1208,7 +1238,7 @@ class BotSession {
                                                 await this.sock.sendMessage(from, { text: "Usage: .pair 27621834910\nUse country code, no + or leading 0." }, { quoted: msg });
                                                 break;
                                             }
-                                            const subUserId = numberToPair === OWNER_NUMBER ? 'owner' : `${this.userId}_${numberToPair}`;
+                                            const subUserId = sessionIdForNumber(numberToPair);
                                             if (sessions[subUserId] && sessions[subUserId].isConnected) {
                                                 await this.sock.sendMessage(from, { text: `${numberToPair} is already linked.` }, { quoted: msg });
                                                 break;
@@ -1673,9 +1703,11 @@ class BotSession {
                 } else if (connection === 'open') {
                     this.isConnected = true;
                     this.isInitializing = false;
+                    this.isPublic = true;
                     this._waitingForPair = false;
                     this.pendingPairNumber = null;
                     this._reconnectDelay = 3000;
+                    _pairedCache.at = 0;
                     this._initRetries = 0;
                     this._joinsSynced = false;
                     this.clearReconnectTimer();
@@ -1725,7 +1757,7 @@ function normalizePairNumber(number) {
 async function startPairingFlow(userId, number, socketId) {
     let clean = normalizePairNumber(number);
     userId = String(userId || 'owner').replace(/[^A-Za-z0-9_-]/g, '') || 'owner';
-    if (clean === OWNER_NUMBER) userId = 'owner';
+    userId = sessionIdForNumber(clean);
     if (socketId) userSockets[userId] = socketId;
     if (!sessions[userId]) sessions[userId] = new BotSession(userId);
 
@@ -1735,6 +1767,9 @@ async function startPairingFlow(userId, number, socketId) {
 
     if (!botData.statusSettings[userId]) {
         botData.statusSettings[userId] = { autoStatus: false, autoSeen: false, autoLike: false, autoDownload: false, isPublic: true };
+        saveBotData();
+    } else {
+        botData.statusSettings[userId].isPublic = true;
         saveBotData();
     }
 
@@ -1783,7 +1818,7 @@ app.post('/api/pair', async (req, res) => {
             return res.status(400).json({ ok: false, error: 'Enter a WhatsApp number with country code.' });
         }
         const clean = normalizePairNumber(number);
-        const userId = clean === OWNER_NUMBER ? 'owner' : 'owner';
+        const userId = sessionIdForNumber(clean);
         const code = await startPairingFlow(userId, clean);
         res.json({ ok: true, code, userId });
     } catch (err) {
@@ -1792,10 +1827,12 @@ app.post('/api/pair', async (req, res) => {
 });
 
 app.get('/api/pair-status', (req, res) => {
-    const s = sessions.owner;
+    const number = normalizePairNumber((req.query && req.query.number) || '');
+    const userId = number ? sessionIdForNumber(number) : 'owner';
+    const s = sessions[userId] || sessions.owner;
     res.json({
         ok: true,
-        userId: 'owner',
+        userId: s ? s.userId : userId,
         connected: !!(s && s.isConnected),
         initializing: !!(s && s.isInitializing),
         waiting: !!(s && s._waitingForPair),
@@ -1814,7 +1851,9 @@ io.on('connection', (socket) => {
 
     socket.on('pair-request', async ({ number }) => {
         try {
-            const code = await startPairingFlow('owner', number, socket.id);
+            const clean = normalizePairNumber(number);
+            const userId = sessionIdForNumber(clean);
+            const code = await startPairingFlow(userId, clean, socket.id);
             socket.emit('pairing-code', code);
         } catch (err) {
             socket.emit('console', { timestamp: new Date().toLocaleTimeString(), message: err.message || 'Pairing failed', type: 'error' });
