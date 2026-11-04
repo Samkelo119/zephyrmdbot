@@ -379,7 +379,9 @@
   }
 </script>
 <script>
-  const BACKEND_URL = window.location.origin;
+  // On Vercel the proxy injects the real bot backend so the live socket
+  // connects straight to it; on the bot host itself this is just the origin.
+  const BACKEND_URL = window.ZEPHYR_BACKEND_URL || window.location.origin;
   let isPairing = false;
 
   function showBanner(msg) {

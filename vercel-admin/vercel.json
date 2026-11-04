@@ -1,11 +1,28 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/forward.js": { "maxDuration": 60 }
+  },
   "rewrites": [
     { "source": "/", "destination": "/api/home" },
     { "source": "/go", "destination": "/api/go" },
     { "source": "/switch", "destination": "/api/switch" },
-    { "source": "/admin", "destination": "/api/proxy" },
-    { "source": "/admin/:path*", "destination": "/api/proxy/:path*" },
-    { "source": "/pair", "destination": "/api/pair" },
-    { "source": "/pair/:path*", "destination": "/api/pair/:path*" }
+    { "source": "/pair", "destination": "/api/forward?__p=&__m=pair" },
+    { "source": "/api/pair", "destination": "/api/forward?__p=api/pair" },
+    { "source": "/api/pair-status", "destination": "/api/forward?__p=api/pair-status" },
+    { "source": "/admin", "destination": "/api/forward?__p=admin" },
+    { "source": "/admin/:path*", "destination": "/api/forward?__p=admin/:path*" },
+    { "source": "/assets/:path*", "destination": "/api/forward?__p=assets/:path*" },
+    { "source": "/socket.io/socket.io.js", "destination": "/api/forward?__p=socket.io/socket.io.js" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000" }
+      ]
+    }
   ]
 }
