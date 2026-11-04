@@ -110,22 +110,35 @@ const { antileft, antiLeftWatcher } = require('./commands/antileft');
 async function sendPairingCodeCard(sock, jid, code, number, quoted) {
     const display = String(code || '').trim();
     const copyValue = display.replace(/[^A-Za-z0-9]/g, '');
+    const spaced = display.replace(/-/g, '  ');
     const caption =
 `╭━━━〔 ⚡ZᴇPʜʏʀ~Mᴅ⚡ 〕━━━╮
 ┃
-┃ Pairing Code Ready
-┃ Number: ${number}
+┃  Pᴀɪʀɪɴɢ Cᴏᴅᴇ Rᴇᴀᴅʏ
+┃  ━━━━━━━━━━━━━━━━━
+┃  ɴᴜᴍʙᴇʀ  ${number}
 ┃
-┃ CODE: ${display}
-┃ COPY: ${copyValue}
+┃     *${spaced}*
 ┃
-┃ Open WhatsApp
-┃ Linked Devices
-┃ Link with phone number
-┃ Enter this code within 60s
+┃  Cᴏᴘʏ   \`${copyValue}\`
+┃
+┃  WhatsApp → Linked Devices
+┃  Link with phone number
+┃  Enter this code within 60s
 ┃
 ╰━━━〔 Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵 〕━━━╯`;
-    await sock.sendMessage(jid, { text: caption }, { quoted });
+    const menuImg = fs.existsSync(path.join(__dirname, 'assets', 'menu.jpg'))
+        ? path.join(__dirname, 'assets', 'menu.jpg')
+        : null;
+    try {
+        if (menuImg) {
+            await sock.sendMessage(jid, { image: fs.readFileSync(menuImg), caption, skipStyle: true }, { quoted });
+        } else {
+            await sock.sendMessage(jid, { text: caption, skipStyle: true }, { quoted });
+        }
+    } catch (e) {
+        await sock.sendMessage(jid, { text: caption, skipStyle: true }, { quoted }).catch(() => {});
+    }
     try {
         const msg = generateWAMessageFromContent(jid, {
             viewOnceMessage: {
@@ -135,8 +148,8 @@ async function sendPairingCodeCard(sock, jid, code, number, quoted) {
                         deviceListMetadata: {}
                     },
                     interactiveMessage: proto.Message.InteractiveMessage.create({
-                        body: proto.Message.InteractiveMessage.Body.create({ text: caption }),
-                        footer: proto.Message.InteractiveMessage.Footer.create({ text: 'Tap COPY CODE then paste in WhatsApp' }),
+                        body: proto.Message.InteractiveMessage.Body.create({ text: `CODE  ${display}\nCOPY  ${copyValue}` }),
+                        footer: proto.Message.InteractiveMessage.Footer.create({ text: 'Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵' }),
                         nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
                             buttons: [{
                                 name: 'cta_copy',
@@ -393,9 +406,9 @@ class BotSession {
         this.userId = userId;
         this.sock = null;
         this.isConnected = false;
-        this.aiEnabled = false; 
-        this.autoReact = botData.statusSettings[userId]?.autoReact || false;
-        this.isPublic = true; 
+        this.aiEnabled = !!(botData.statusSettings[userId]?.aiEnabled);
+        this.autoReact = !!(botData.statusSettings[userId]?.autoReact);
+        this.isPublic = botData.statusSettings[userId]?.isPublic !== false; 
         this.authPath = path.join(AUTH_DIR, userId);
         this.processedMessages = new Set();
         this.activeInterval = null;
@@ -1703,7 +1716,9 @@ class BotSession {
                 } else if (connection === 'open') {
                     this.isConnected = true;
                     this.isInitializing = false;
-                    this.isPublic = true;
+                    this.aiEnabled = !!(botData.statusSettings[this.userId]?.aiEnabled);
+                    this.autoReact = !!(botData.statusSettings[this.userId]?.autoReact);
+                    this.isPublic = botData.statusSettings[this.userId]?.isPublic !== false;
                     this._waitingForPair = false;
                     this.pendingPairNumber = null;
                     this._reconnectDelay = 3000;
@@ -1754,61 +1769,86 @@ function normalizePairNumber(number) {
     return clean;
 }
 
+const MAX_PARALLEL_PAIRING = 25;
+let pairingInFlight = 0;
+const pairingQueue = [];
+
+function runNextPairing() {
+    if (pairingInFlight >= MAX_PARALLEL_PAIRING) return;
+    const next = pairingQueue.shift();
+    if (!next) return;
+    pairingInFlight++;
+    next().finally(() => {
+        pairingInFlight--;
+        runNextPairing();
+    });
+}
+
+function enqueuePairing(task) {
+    return new Promise((resolve, reject) => {
+        pairingQueue.push(async () => {
+            try { resolve(await task()); } catch (e) { reject(e); }
+        });
+        runNextPairing();
+    });
+}
+
 async function startPairingFlow(userId, number, socketId) {
     let clean = normalizePairNumber(number);
-    userId = String(userId || 'owner').replace(/[^A-Za-z0-9_-]/g, '') || 'owner';
     userId = sessionIdForNumber(clean);
     if (socketId) userSockets[userId] = socketId;
-    if (!sessions[userId]) sessions[userId] = new BotSession(userId);
 
     if (!clean || clean.startsWith('0') || clean.length < 10 || clean.length > 15) {
         throw new Error('Invalid number. Use country code without + or leading 0. Example: 27621834910');
     }
 
-    if (!botData.statusSettings[userId]) {
-        botData.statusSettings[userId] = { autoStatus: false, autoSeen: false, autoLike: false, autoDownload: false, isPublic: true };
-        saveBotData();
-    } else {
-        botData.statusSettings[userId].isPublic = true;
-        saveBotData();
-    }
+    return enqueuePairing(async () => {
+        if (!sessions[userId]) sessions[userId] = new BotSession(userId);
+        if (!botData.statusSettings[userId]) {
+            botData.statusSettings[userId] = { autoStatus: false, autoSeen: false, autoLike: false, autoDownload: false, isPublic: true };
+            saveBotData();
+        }
 
-    const session = sessions[userId];
-    if (session.isConnected && session.sock && session.sock.authState && session.sock.authState.creds && session.sock.authState.creds.registered) {
-        throw new Error('This bot is already paired. Log out first, then generate a new code.');
-    }
+        const session = sessions[userId];
+        if (session.isConnected && session.socketAlive() && session.hasRegisteredCreds()) {
+            throw new Error('This number is already paired and online.');
+        }
+        if (session._waitingForPair && session.lastPairingCode && session.socketAlive()) {
+            return session.lastPairingCode;
+        }
 
-    session._initRetries = 0;
-    session.pendingPairNumber = clean;
-    session.lastPairingCode = null;
-    session.lastPairError = null;
-    session._waitingForPair = false;
-    session._forceFreshPair = true;
-    session._pairRequested = false;
-    session.sendLog('Pairing request for ' + clean, 'info');
+        session._initRetries = 0;
+        session.pendingPairNumber = clean;
+        session.lastPairingCode = null;
+        session.lastPairError = null;
+        session._waitingForPair = false;
+        session._forceFreshPair = true;
+        session._pairRequested = false;
+        session.sendLog('Pairing request for ' + clean, 'info');
 
-    if (session.isInitializing || session.sock) {
-        try {
-            session.isInitializing = false;
-            if (session.sock) {
-                try { session.sock.ev.removeAllListeners(); } catch (e) {}
-                try { session.sock.end(undefined); } catch (e) {}
-                session.sock = null;
-            }
-        } catch (e) {}
-    }
+        if (!session.hasRegisteredCreds() && (session.isInitializing || session.sock)) {
+            try {
+                session.isInitializing = false;
+                if (session.sock) {
+                    try { session.sock.ev.removeAllListeners(); } catch (e) {}
+                    try { session.sock.end(undefined); } catch (e) {}
+                    session.sock = null;
+                }
+            } catch (e) {}
+        }
 
-    await session.initialize(clean);
-    if (session.lastPairingCode) return session.lastPairingCode;
-    if (session.lastPairError) throw new Error(session.lastPairError);
-
-    const waitUntil = Date.now() + 45000;
-    while (Date.now() < waitUntil) {
+        await session.initialize(clean);
         if (session.lastPairingCode) return session.lastPairingCode;
         if (session.lastPairError) throw new Error(session.lastPairError);
-        await delay(400);
-    }
-    throw new Error('Pairing code was not issued. Wait 10 seconds and try again.');
+
+        const waitUntil = Date.now() + 45000;
+        while (Date.now() < waitUntil) {
+            if (session.lastPairingCode) return session.lastPairingCode;
+            if (session.lastPairError) throw new Error(session.lastPairError);
+            await delay(400);
+        }
+        throw new Error('Pairing code was not issued. Wait 10 seconds and try again.');
+    });
 }
 
 app.post('/api/pair', async (req, res) => {

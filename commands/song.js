@@ -1,7 +1,5 @@
 const axios = require('axios');
 const yts = require('yt-search');
-const fs = require('fs').promises;
-const path = require('path');
 const { toAudio } = require('../lib/converter');
 
 const AXIOS_DEFAULTS = {
@@ -27,7 +25,19 @@ async function tryRequest(getter, attempts = 3) {
     throw lastError;
 }
 
-// EliteProTech API - Primary
+async function getKnightDownloadByQuery(query) {
+    const apiUrl = `https://knightbotapi.stream/api/ytmp3?apikey=knight&query=${encodeURIComponent(query)}`;
+    const res = await tryRequest(() => axios.get(apiUrl, AXIOS_DEFAULTS));
+    const data = res?.data;
+    const download = data?.download || data?.result?.download || data?.result?.url || data?.data?.download || data?.url || data?.download_url;
+    const title = data?.title || data?.result?.title || data?.data?.title || query;
+    const thumbnail = data?.thumbnail || data?.result?.thumbnail || data?.data?.thumbnail;
+    if (download) {
+        return { download, title, thumbnail };
+    }
+    throw new Error('Knight returned no download');
+}
+
 async function getEliteProTechDownloadByUrl(youtubeUrl) {
     const apiUrl = `https://eliteprotech-apis.zone.id/ytdown?url=${encodeURIComponent(youtubeUrl)}&format=mp3`;
     const res = await tryRequest(() => axios.get(apiUrl, AXIOS_DEFAULTS));
@@ -68,20 +78,16 @@ async function getOkatsuDownloadByUrl(youtubeUrl) {
 
 async function songCommand(sock, chatId, message) {
     try {
-        // Loading reactions
-        const loadEmojis = ['📥', '⏳', '🎵'];
-        for (const emoji of loadEmojis) {
-            await sock.sendMessage(chatId, { react: { text: emoji, key: message.key } });
-        }
-
         const messageContent = message.message?.ephemeralMessage?.message || message.message?.viewOnceMessage?.message || message.message?.viewOnceMessageV2?.message || message.message;
         const text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || '').trim();
-        const query = text.replace(/^\.song\s+/i, '').trim();
+        const query = text.replace(/^[.#!\/]?(song|play|ytsong|ytaudio)\s+/i, '').trim();
 
-        if (!query || query.toLowerCase() === '.song') {
+        if (!query || /^(song|play|ytsong|ytaudio)$/i.test(query)) {
             await sock.sendMessage(chatId, { text: 'Usage: .song <song name or YouTube link>' }, { quoted: message });
             return;
         }
+
+        sock.sendMessage(chatId, { react: { text: '🎵', key: message.key } }).catch(() => {});
 
         let video;
         if (query.includes('youtube.com') || query.includes('youtu.be')) {
@@ -95,41 +101,33 @@ async function songCommand(sock, chatId, message) {
             video = search.videos[0];
         }
 
-        // Inform user
         await sock.sendMessage(chatId, {
             image: { url: video.thumbnail },
-            caption: `🎵 Downloading: *${video.title}*\n⏱ Duration: ${video.timestamp || 'N/A'}`
+            caption: `Downloading: *${video.title}*\nDuration: ${video.timestamp || 'N/A'}\n\nPᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵`
         }, { quoted: message });
 
-        // Try multiple APIs with fallback chain
         let audioBuffer;
         let downloadSuccess = false;
         let finalTitle = video.title;
-        
+
         const apiMethods = [
+            { name: 'Knight', method: () => getKnightDownloadByQuery(query) },
             { name: 'EliteProTech', method: () => getEliteProTechDownloadByUrl(video.url) },
             { name: 'Yupra', method: () => getYupraDownloadByUrl(video.url) },
             { name: 'Okatsu', method: () => getOkatsuDownloadByUrl(video.url) },
-            { name: 'Alya', method: async () => {
-                const res = await axios.get(`https://api.alyachan.pro/api/ytmp3?url=${encodeURIComponent(video.url)}&apikey=${require('../lib/apiKeys').get('songApiKey')}`, AXIOS_DEFAULTS);
-                if (res.data.status && res.data.data.url) return { download: res.data.data.url, title: res.data.data.title };
-                throw new Error('Alya failed');
-            }},
             { name: 'Vreden', method: async () => {
                 const res = await axios.get(`https://api.vreden.my.id/api/ytmp3?url=${encodeURIComponent(video.url)}`, AXIOS_DEFAULTS);
                 if (res.data.status && res.data.result.download.url) return { download: res.data.result.download.url, title: res.data.result.metadata.title };
                 throw new Error('Vreden failed');
             }}
         ];
-        
+
         for (const apiMethod of apiMethods) {
             try {
                 const audioData = await apiMethod.method();
                 const audioUrl = audioData.download;
                 finalTitle = audioData.title || video.title;
-                
                 if (!audioUrl) continue;
-                
                 const audioResponse = await axios.get(audioUrl, {
                     responseType: 'arraybuffer',
                     timeout: 120000,
@@ -139,7 +137,6 @@ async function songCommand(sock, chatId, message) {
                     }
                 });
                 audioBuffer = Buffer.from(audioResponse.data);
-                
                 if (audioBuffer && audioBuffer.length > 0) {
                     downloadSuccess = true;
                     break;
@@ -148,12 +145,11 @@ async function songCommand(sock, chatId, message) {
                 console.log(`${apiMethod.name} failed:`, err.message);
             }
         }
-        
+
         if (!downloadSuccess) {
             throw new Error('All download sources failed.');
         }
 
-        // Detect format and convert if needed
         const firstBytes = audioBuffer.slice(0, 4).toString('hex');
         let fileExtension = 'mp3';
         if (firstBytes.startsWith('000000') || audioBuffer.slice(4, 8).toString('ascii') === 'ftyp') fileExtension = 'm4a';
@@ -168,13 +164,13 @@ async function songCommand(sock, chatId, message) {
         await sock.sendMessage(chatId, {
             audio: finalBuffer,
             mimetype: 'audio/mpeg',
-            fileName: `${finalTitle.replace(/[^\w\s-]/g, '')}.mp3`,
+            fileName: `${String(finalTitle).replace(/[^\w\s-]/g, '')}.mp3`,
             ptt: false
         }, { quoted: message });
 
     } catch (err) {
         console.error('Song command error:', err);
-        await sock.sendMessage(chatId, { text: `❌ Error: ${err.message}` }, { quoted: message });
+        await sock.sendMessage(chatId, { text: `Error: ${err.message}` }, { quoted: message });
     }
 }
 
