@@ -5,6 +5,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const REMOTE = 'origin';
 const BRANCH = 'main';
+const REPO_URL = 'https://github.com/Samkelo119/zephyrmdbot.git';
 
 function readPkgVersion() {
     try {
@@ -14,13 +15,20 @@ function readPkgVersion() {
     }
 }
 
-function git(args, timeout = 90000) {
-    return execFileSync('git', args, {
-        cwd: ROOT,
-        encoding: 'utf8',
-        timeout,
-        env: { ...process.env, GIT_TERMINAL_PROMPT: '0' }
-    }).trim();
+function git(args, timeout = 120000) {
+    try {
+        return execFileSync('git', args, {
+            cwd: ROOT,
+            encoding: 'utf8',
+            timeout,
+            env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: 'echo' }
+        }).trim();
+    } catch (err) {
+        const parts = [err.stderr, err.stdout, err.message].filter(Boolean).map(String);
+        const wrapped = new Error(parts.join('\n').trim() || 'git failed');
+        wrapped.status = err.status;
+        throw wrapped;
+    }
 }
 
 let bootCommit = '';
@@ -66,6 +74,17 @@ function shortLog(text, max = 900) {
     return clean.slice(0, max) + '\n…';
 }
 
+function ensureOrigin() {
+    try {
+        const url = git(['remote', 'get-url', REMOTE]);
+        if (!url) throw new Error('missing origin');
+    } catch (e) {
+        try { git(['remote', 'add', REMOTE, REPO_URL]); } catch (e2) {
+            git(['remote', 'set-url', REMOTE, REPO_URL]);
+        }
+    }
+}
+
 async function updateCommand(sock, from, msg) {
     if (updateCommand._busy) {
         return sock.sendMessage(from, { text: 'Update already running.' }, { quoted: msg });
@@ -83,14 +102,25 @@ async function updateCommand(sock, from, msg) {
         const before = git(['rev-parse', 'HEAD']);
         const dirty = git(['status', '--porcelain']);
         if (dirty) {
-            git(['stash', 'push', '-u', '-m', 'zephyr-update-stash']);
-            stashed = true;
+            try {
+                git(['stash', 'push', '-u', '-m', 'zephyr-update-stash']);
+                stashed = true;
+            } catch (e) {}
         }
 
-        git(['fetch', REMOTE, BRANCH]);
+        ensureOrigin();
+        git(['fetch', '--prune', REMOTE, BRANCH]);
+
         let remoteHead = '';
         try { remoteHead = git(['rev-parse', `${REMOTE}/${BRANCH}`]); } catch (e) {}
-        git(['pull', '--ff-only', REMOTE, BRANCH]);
+
+        try {
+            git(['pull', '--ff-only', REMOTE, BRANCH]);
+        } catch (pullErr) {
+            if (!remoteHead) throw pullErr;
+            git(['checkout', '-B', BRANCH, `${REMOTE}/${BRANCH}`]);
+            git(['reset', '--hard', `${REMOTE}/${BRANCH}`]);
+        }
 
         if (stashed) {
             try { git(['stash', 'pop']); } catch (e) {}
@@ -111,7 +141,7 @@ async function updateCommand(sock, from, msg) {
         let summary = '';
         try {
             if (!alreadyOnDisk) summary = git(['log', '--oneline', `${before}..${after}`]);
-            else if (remoteHead && bootCommit && bootCommit !== after) {
+            else if (bootCommit && bootCommit !== after) {
                 summary = git(['log', '--oneline', `${bootCommit}..${after}`]);
             }
         } catch (e) {}
@@ -124,11 +154,11 @@ async function updateCommand(sock, from, msg) {
             const afterPkg = fs.readFileSync(pkgPath, 'utf8');
             needNpm = beforePkg !== afterPkg;
         } catch (e) {
-            needNpm = true;
+            needNpm = false;
         }
         if (needNpm) {
             await sock.sendMessage(from, { text: 'package.json changed. Installing dependencies…' }, { quoted: msg });
-            npmInstall();
+            try { npmInstall(); } catch (e) {}
         }
 
         await sock.sendMessage(from, {

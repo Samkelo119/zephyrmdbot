@@ -18,32 +18,11 @@ async function downloadQuotedMedia(quoted, type) {
 
 async function gpt(sock, from, msg, q) {
     if (!q) return send(sock, from, msg, 'Please provide a message for the AI.\nExample: `.gpt Hello`');
-    const apiKey = require('../lib/apiKeys').get('openaiApiKey');
-    if (apiKey) {
-        try {
-            const { data } = await axios.post('https://api.openai.com/v1/chat/completions', {
-                model: 'gpt-3.5-turbo',
-                messages: [{ role: 'user', content: q }],
-                max_tokens: 400
-            }, {
-                timeout: 25000,
-                headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' }
-            });
-            const text = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-            if (text) return send(sock, from, msg, `*AI Response:*\n\n${text.trim()}`);
-        } catch (e) {}
-    }
     try {
-        const { data } = await axios.get(`https://lance-frank-asta.onrender.com/api/gpt?q=${encodeURIComponent(q)}`, { timeout: 25000 });
-        if (!data || !data.message) return send(sock, from, msg, 'AI failed to respond. Please try again later.');
-        return send(sock, from, msg, `*AI Response:*\n\n${data.message}`);
+        const text = await require('../lib/openaiChat').chat(q);
+        return send(sock, from, msg, `*AI Response:*\n\n${text}`);
     } catch (e) {
-        try {
-            const { data } = await axios.get(`https://api.dreaded.site/api/chatgpt?text=${encodeURIComponent(q)}`, { timeout: 25000 });
-            const text = data?.result || data?.message || data?.data;
-            if (text) return send(sock, from, msg, `*AI Response:*\n\n${text}`);
-        } catch (e2) {}
-        return send(sock, from, msg, 'An error occurred while communicating with the AI.');
+        return send(sock, from, msg, 'AI error: ' + (e.message || 'Please try again later.'));
     }
 }
 
@@ -54,11 +33,12 @@ async function openai(sock, from, msg, q) {
 async function metaai(sock, from, msg, q) {
     if (!q) return send(sock, from, msg, 'Please provide a question to ask Meta AI.\nExample: `.metaai What is AI?`');
     try {
-        const { data } = await axios.get(`https://apis.davidcyriltech.my.id/ai/metaai?text=${encodeURIComponent(q)}`, { timeout: 25000 });
-        if (!data || (!data.success && !data.response)) return send(sock, from, msg, 'Meta AI failed to respond.');
-        return send(sock, from, msg, `*Meta AI:* ${data.response || data.result || data.message}`);
+        const text = await require('../lib/openaiChat').chat(q, {
+            system: 'You are Meta AI answering as a WhatsApp assistant for Zephyr MD by MrDieHardTechX. Be clear, useful, and concise.'
+        });
+        return send(sock, from, msg, `*Meta AI:*\n\n${text}`);
     } catch (e) {
-        return send(sock, from, msg, 'An error occurred while talking to Meta AI.');
+        return send(sock, from, msg, 'AI error: ' + (e.message || 'Please try again later.'));
     }
 }
 

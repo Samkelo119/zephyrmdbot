@@ -576,16 +576,10 @@ class BotSession {
     }
 
     async getAIResponse(userJid, userMessage) {
-        if (!openai) return "❌ AI is not configured.";
         try {
-            const completion = await openai.chat.completions.create({
-                model: process.env.AI_MODEL || "gpt-3.5-turbo",
-                messages: [{ role: "system", content: "Helpful assistant." }, { role: "user", content: userMessage }],
-                max_tokens: 150
-            });
-            return completion.choices[0].message.content.trim();
+            return await require('./lib/openaiChat').chat(userMessage);
         } catch (error) {
-            return "❌ AI Error: " + error.message;
+            return "AI Error: " + (error.message || 'Please try again later.');
         }
     }
 

@@ -24,65 +24,13 @@ function saveConfig(cfg) {
 
 // ── AI reply ──────────────────────────────────────────────────────────────────
 async function getAiReply(userText) {
-    const fetch  = (...a) => import('node-fetch').then(m => m.default(...a));
-    const apiKey = process.env.OPENAI_A || process.env.OPENAI_API_KEY;
-
-    if (apiKey) {
-        try {
-            const res = await fetch('https://api.openai.com/v1/chat/completions', {
-                method : 'POST',
-                headers: {
-                    'Content-Type' : 'application/json',
-                    'Authorization': `Bearer ${apiKey}`,
-                },
-                body: JSON.stringify({
-                    model   : 'gpt-4o-mini',
-                    messages: [
-                        {
-                            role   : 'system',
-                            content: `You are ZᴇPʜʏʀMᴅ, a friendly and helpful WhatsApp assistant bot created by MʀDɪᴇHᴀʀᴅTᴇᴄʜX.
-Respond in the SAME language the user writes in — Zulu, Siswati, English, Afrikaans, or any other language.
-Keep responses warm, conversational, and concise (under 200 words).
-Never say you are made by OpenAI. You are SKYKIID-MD.`,
-                        },
-                        { role: 'user', content: userText },
-                    ],
-                    max_tokens : 400,
-                    temperature: 0.8,
-                }),
-            });
-            if (res.ok) {
-                const data = await res.json();
-                const reply = data?.choices?.[0]?.message?.content?.trim();
-                if (reply) return reply;
-            }
-        } catch (_) {}
-    }
-
-    // ── Fallback: pollinations.ai (free, no key needed) ──────────────────────
     try {
-        const res = await fetch('https://text.pollinations.ai/', {
-            method : 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body   : JSON.stringify({
-                messages: [
-                    {
-                        role   : 'system',
-                        content: `You are ZᴇPʜʏʀMᴅ, a friendly WhatsApp assistant by MʀDɪᴇHᴀʀᴅTᴇᴄʜX. Reply in the same language as the user. Keep it short and helpful.`,
-                    },
-                    { role: 'user', content: userText },
-                ],
-                model  : 'openai',
-                private: true,
-            }),
+        return await require('../lib/openaiChat').chat(userText, {
+            system: 'You are Zephyr MD, a friendly WhatsApp assistant created by MrDieHardTechX. Reply in the same language the user writes in. Keep responses warm and under 200 words. Never say you are made by OpenAI.'
         });
-        if (res.ok) {
-            const text = await res.text();
-            if (text?.trim()) return text.trim();
-        }
-    } catch (_) {}
-
-    return null;
+    } catch (_) {
+        return null;
+    }
 }
 
 // ── Exported helper called from index.js ──────────────────────────────────────
