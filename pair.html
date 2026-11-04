@@ -237,7 +237,7 @@
   </div>
 
   <div class="steps">
-    <div class="step active" id="stepA"><span class="n">1</span> Enter Number</div>
+    <div class="step active" id="stepA"><span class="n">1</span> Name + Number</div>
     <span class="step-arrow"><i class="fas fa-chevron-right"></i></span>
     <div class="step" id="stepB"><span class="n">2</span> Generate Code</div>
     <span class="step-arrow"><i class="fas fa-chevron-right"></i></span>
@@ -248,9 +248,11 @@
 
     <div id="stage1" class="card">
       <h3><i class="fas fa-link"></i>Pair WhatsApp</h3>
+      <label>Session name</label>
+      <input type="text" id="sessionName" value="" placeholder="Write your session name first" maxlength="32" autocomplete="off">
       <label>WhatsApp number with country code, no plus sign</label>
       <input type="text" id="pairNumber" value="" placeholder="Country code + number">
-      <p class="loading-text" style="margin:0 0 12px;">A live WhatsApp pairing code is issued only after you tap Generate.</p>
+      <p class="loading-text" style="margin:0 0 12px;">Write your session name first. A live WhatsApp pairing code is issued only after you tap Generate.</p>
       <button class="btn" id="pairBtn"><i class="fas fa-satellite-dish"></i> Generate Code</button>
       <div id="progressContainer" class="progress-container"><div id="progressBar" class="progress-bar"></div></div>
       <div class="loading-text" id="loadingText"></div>
@@ -271,7 +273,7 @@
       <h3><i class="fas fa-list"></i>Command highlights</h3>
       <div class="cmd-grid">
         <div class="cmd-item"><b>.menu</b><span>Show full 180+ command list</span></div>
-        <div class="cmd-item"><b>.pair</b><span>Link an extra number (owner)</span></div>
+        <div class="cmd-item"><b>.pair</b><span>Link an extra number with a session name</span></div>
         <div class="cmd-item"><b>.filter</b><span>Auto-delete banned words</span></div>
         <div class="cmd-item"><b>.slowmode</b><span>Rate-limit group messages</span></div>
         <div class="cmd-item"><b>.mute / .unmute</b><span>Silence a specific member</span></div>
@@ -409,6 +411,9 @@
 
   document.getElementById('pairBtn').onclick = () => {
     if (isPairing) return;
+    const sessionName = (document.getElementById('sessionName').value || '').replace(/\s+/g, ' ').trim();
+    if (!sessionName || sessionName.length < 2) return alert('Write your session name before requesting a pairing code.');
+    if (!/^[A-Za-z0-9][A-Za-z0-9 _.-]{1,31}$/.test(sessionName)) return alert('Session name: 2-32 letters, numbers, spaces, _ . -');
     let number = document.getElementById('pairNumber').value.replace(/\D/g, '');
     if (number.startsWith('00')) number = number.slice(2);
     if (!number) return alert('Enter a WhatsApp number first.');
@@ -433,12 +438,12 @@
     fetch('/api/pair', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ number })
+      body: JSON.stringify({ number, sessionName })
     }).then(r => r.json()).then(data => {
       if (data && data.code) {
         showCode(data.code);
         const poll = setInterval(() => {
-          fetch('/api/pair-status').then(r => r.json()).then(s => {
+          fetch('/api/pair-status?number=' + encodeURIComponent(number)).then(r => r.json()).then(s => {
             if (s && s.connected) {
               clearInterval(poll);
               socket.emit('connection-status', s);
@@ -462,6 +467,7 @@
     socket.emit('logout');
     document.getElementById('stage2').classList.add('hidden');
     document.getElementById('stage1').classList.remove('hidden');
+    document.getElementById('sessionName').value = '';
     document.getElementById('pairNumber').value = '';
     document.getElementById('pairingResult').innerText = '';
     document.getElementById('copyCodeBtn').style.display = 'none';

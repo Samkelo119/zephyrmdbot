@@ -107,16 +107,17 @@ const extraV101 = require('./commands/extra-v101');
 const { antileft, antiLeftWatcher } = require('./commands/antileft');
 
 
-async function sendPairingCodeCard(sock, jid, code, number, quoted) {
+async function sendPairingCodeCard(sock, jid, code, number, quoted, sessionName) {
     const display = String(code || '').trim();
     const copyValue = display.replace(/[^A-Za-z0-9]/g, '');
     const spaced = display.replace(/-/g, '  ');
+    const nameLine = sessionName ? `┃  ɴᴀᴍᴇ    ${sessionName}\n` : '';
     const caption =
 `╭━━━〔 ⚡ZᴇPʜʏʀ~Mᴅ⚡ 〕━━━╮
 ┃
 ┃  Pᴀɪʀɪɴɢ Cᴏᴅᴇ Rᴇᴀᴅʏ
 ┃  ━━━━━━━━━━━━━━━━━
-┃  ɴᴜᴍʙᴇʀ  ${number}
+${nameLine}┃  ɴᴜᴍʙᴇʀ  ${number}
 ┃
 ┃     *${spaced}*
 ┃
@@ -321,6 +322,24 @@ function sessionIdForNumber(number) {
     return 'user_' + clean;
 }
 
+function normalizeSessionName(name) {
+    const clean = String(name || '').replace(/\s+/g, ' ').trim();
+    if (clean.length < 2 || clean.length > 32) return '';
+    if (!/^[A-Za-z0-9][A-Za-z0-9 _.-]{1,31}$/.test(clean)) return '';
+    return clean;
+}
+
+function getSessionName(userId) {
+    return (botData.statusSettings && botData.statusSettings[userId] && botData.statusSettings[userId].sessionName) || '';
+}
+
+function saveSessionName(userId, name) {
+    if (!botData.statusSettings) botData.statusSettings = {};
+    if (!botData.statusSettings[userId]) botData.statusSettings[userId] = {};
+    botData.statusSettings[userId].sessionName = name;
+    saveBotData();
+}
+
 let _pairedCache = { at: 0, nums: new Set([OWNER_NUMBER]) };
 function allPairedNumbers() {
     if (Date.now() - _pairedCache.at < 8000) return _pairedCache.nums;
@@ -427,6 +446,7 @@ class BotSession {
         this._waitingForPair = false;
         this._pairRequested = false;
         this._connectNoticeSent = false;
+        this.sessionName = getSessionName(userId) || (userId === 'owner' ? 'Owner' : '');
     }
 
     clearReconnectTimer() {
@@ -604,7 +624,8 @@ class BotSession {
     startActiveCheck() {
         if (this.activeInterval) clearInterval(this.activeInterval);
         this.activeInterval = setInterval(() => {
-            if (this._waitingForPair || this.isInitializing) return;
+            if (this.isInitializing) return;
+            if (this._waitingForPair && !this.hasRegisteredCreds()) return;
             if (!this.hasRegisteredCreds()) return;
             if (this.socketAlive()) {
                 this.isConnected = true;
@@ -612,7 +633,7 @@ class BotSession {
             }
             this.isConnected = false;
             this.scheduleReconnect('socket-dead');
-        }, 25000);
+        }, 12000);
     }
 
     async initialize(pairingNumber = null) {
@@ -1241,8 +1262,9 @@ class BotSession {
                                                 break;
                                             }
                                             const numberToPair = (args[0] || '').replace(/[^0-9]/g, '');
-                                            if (!numberToPair) {
-                                                await this.sock.sendMessage(from, { text: "Usage: .pair 27621834910\nUse country code, no + or leading 0." }, { quoted: msg });
+                                            const sessionNameArg = normalizeSessionName(args.slice(1).join(' '));
+                                            if (!numberToPair || !sessionNameArg) {
+                                                await this.sock.sendMessage(from, { text: "Usage: .pair 27621834910 SessionName\nWrite a session name before requesting a pairing code.\nUse country code, no + or leading 0." }, { quoted: msg });
                                                 break;
                                             }
                                             const subUserId = sessionIdForNumber(numberToPair);
@@ -1250,23 +1272,23 @@ class BotSession {
                                                 await this.sock.sendMessage(from, { text: `${numberToPair} is already linked.` }, { quoted: msg });
                                                 break;
                                             }
-                                            await this.sock.sendMessage(from, { text: `Generating pairing code for ${numberToPair}...` }, { quoted: msg });
+                                            await this.sock.sendMessage(from, { text: `Generating pairing code for ${sessionNameArg} (${numberToPair})...` }, { quoted: msg });
                                             try {
-                                                const code = await startPairingFlow(subUserId, numberToPair, null);
+                                                const code = await startPairingFlow(subUserId, numberToPair, null, sessionNameArg);
                                                 const session = sessions[subUserId];
                                                 if (session) {
                                                     session.onPairingCode = async (nextCode) => {
-                                                        await sendPairingCodeCard(this.sock, from, nextCode, numberToPair, msg);
+                                                        await sendPairingCodeCard(this.sock, from, nextCode, numberToPair, msg, sessionNameArg);
                                                     };
                                                     session.onPairingError = async (message) => {
                                                         await this.sock.sendMessage(from, { text: `Pairing failed: ${message}` }, { quoted: msg });
                                                     };
                                                     session.onConnected = async () => {
-                                                        await this.sock.sendMessage(from, { text: `${numberToPair} connected successfully!\n\nPᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵` }, { quoted: msg });
+                                                        await this.sock.sendMessage(from, { text: `${sessionNameArg} (${numberToPair}) connected successfully!\n\nPᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵` }, { quoted: msg });
                                                     };
                                                 }
                                                 if (code) {
-                                                    await sendPairingCodeCard(this.sock, from, code, numberToPair, msg);
+                                                    await sendPairingCodeCard(this.sock, from, code, numberToPair, msg, sessionNameArg);
                                                 } else {
                                                     await this.sock.sendMessage(from, { text: 'Pairing code was not issued. Wait 10 seconds and try again.' }, { quoted: msg });
                                                 }
@@ -1787,7 +1809,7 @@ function enqueuePairing(task) {
     });
 }
 
-async function startPairingFlow(userId, number, socketId) {
+async function startPairingFlow(userId, number, socketId, sessionName) {
     let clean = normalizePairNumber(number);
     userId = sessionIdForNumber(clean);
     if (socketId) userSockets[userId] = socketId;
@@ -1795,15 +1817,20 @@ async function startPairingFlow(userId, number, socketId) {
     if (!clean || clean.startsWith('0') || clean.length < 10 || clean.length > 15) {
         throw new Error('Invalid number. Use country code without + or leading 0. Example: 27621834910');
     }
+    const named = normalizeSessionName(sessionName);
+    if (!named) {
+        throw new Error('Write your session name before requesting a pairing code. Example: MyBot');
+    }
 
     return enqueuePairing(async () => {
         if (!sessions[userId]) sessions[userId] = new BotSession(userId);
         if (!botData.statusSettings[userId]) {
             botData.statusSettings[userId] = { autoStatus: false, autoSeen: false, autoLike: false, autoDownload: false, isPublic: true };
-            saveBotData();
         }
+        saveSessionName(userId, named);
 
         const session = sessions[userId];
+        session.sessionName = named;
         if (session.isConnected && session.socketAlive() && session.hasRegisteredCreds()) {
             throw new Error('This number is already paired and online.');
         }
@@ -1848,13 +1875,17 @@ async function startPairingFlow(userId, number, socketId) {
 app.post('/api/pair', async (req, res) => {
     try {
         const number = req.body && req.body.number;
+        const sessionName = req.body && req.body.sessionName;
         if (!number) {
             return res.status(400).json({ ok: false, error: 'Enter a WhatsApp number with country code.' });
         }
+        if (!normalizeSessionName(sessionName)) {
+            return res.status(400).json({ ok: false, error: 'Write your session name before requesting a pairing code.' });
+        }
         const clean = normalizePairNumber(number);
         const userId = sessionIdForNumber(clean);
-        const code = await startPairingFlow(userId, clean);
-        res.json({ ok: true, code, userId });
+        const code = await startPairingFlow(userId, clean, null, sessionName);
+        res.json({ ok: true, code, userId, sessionName: normalizeSessionName(sessionName) });
     } catch (err) {
         res.status(400).json({ ok: false, error: err.message || 'Pairing failed' });
     }
@@ -1867,6 +1898,7 @@ app.get('/api/pair-status', (req, res) => {
     res.json({
         ok: true,
         userId: s ? s.userId : userId,
+        sessionName: (s && s.sessionName) || getSessionName(userId) || '',
         connected: !!(s && s.isConnected),
         initializing: !!(s && s.isInitializing),
         waiting: !!(s && s._waitingForPair),
@@ -1883,11 +1915,11 @@ io.on('connection', (socket) => {
         sessions[id].sendConnectionStatus();
     });
 
-    socket.on('pair-request', async ({ number }) => {
+    socket.on('pair-request', async ({ number, sessionName }) => {
         try {
             const clean = normalizePairNumber(number);
             const userId = sessionIdForNumber(clean);
-            const code = await startPairingFlow(userId, clean, socket.id);
+            const code = await startPairingFlow(userId, clean, socket.id, sessionName);
             socket.emit('pairing-code', code);
         } catch (err) {
             socket.emit('console', { timestamp: new Date().toLocaleTimeString(), message: err.message || 'Pairing failed', type: 'error' });
@@ -1932,7 +1964,8 @@ server.listen(PORT, () => {
         try {
             loadExistingSessions();
             for (const session of Object.values(sessions)) {
-                if (!session || session._waitingForPair || session.isInitializing) continue;
+                if (!session || session.isInitializing) continue;
+                if (session._waitingForPair && !session.hasRegisteredCreds()) continue;
                 if (!session.hasRegisteredCreds()) continue;
                 if (session.socketAlive()) {
                     session.isConnected = true;
@@ -1942,5 +1975,5 @@ server.listen(PORT, () => {
                 session.scheduleReconnect('watchdog');
             }
         } catch (e) {}
-    }, 15000);
+    }, 10000);
 });
