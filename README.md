@@ -1,100 +1,98 @@
 <div align="center">
 
-<img src="assets/menu.jpg" alt="ZEPHYR MD" width="920">
+<img src="assets/menu.jpg" alt="ZEPHYR MD" width="980">
 
 <br><br>
 
-<img src="https://readme-typing-svg.demolab.com?font=Orbitron&weight=700&size=28&duration=3000&pause=800&color=7C5CFF&center=true&vCenter=true&width=640&lines=ZEPHYR+MD;Multi-Device+WhatsApp+Bot;Stay+Online+24%2F7;Powered+By+MrDieHardTechX" alt="ZEPHYR MD">
+<img src="https://readme-typing-svg.demolab.com?font=Georgia&weight=600&size=30&duration=2800&pause=900&color=E8C98A&center=true&vCenter=true&width=720&lines=ZEPHYR+MD;Named+Sessions.+Live+Codes.;Stay+Online+24%2F7;Crafted+By+MrDieHardTechX" alt="ZEPHYR MD">
 
 <br>
 
-**Mᴜʟᴛɪ-ᴅᴇᴠɪᴄᴇ Wʜᴀᴛsᴀᴘᴘ Bᴏᴛ ʙʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX**
-
-<br>
-
-<a href="https://zephyrmdbot.onrender.com/">
-  <img src="https://img.shields.io/badge/PAIR%20NOW-Click%20To%20Connect-25D366?style=for-the-badge&logo=whatsapp&logoColor=white&labelColor=0b1220" alt="PAIR NOW">
-</a>
-&nbsp;
-<a href="https://zephyr-md-pair3.onrender.com/">
-  <img src="https://img.shields.io/badge/PAIR%20NOW%202-Backup%20Link-7C5CFF?style=for-the-badge&logo=whatsapp&logoColor=white&labelColor=0b1220" alt="PAIR NOW 2">
-</a>
-&nbsp;
-<a href="https://wa.me/27621834910">
-  <img src="https://img.shields.io/badge/OWNER-27621834910-00E5FF?style=for-the-badge&logo=whatsapp&logoColor=black&labelColor=0b1220" alt="Owner">
-</a>
+**A cinematic multi-device WhatsApp engine.**  
+Named sessions. Live companion codes. One-message menus. Always on.
 
 <br><br>
 
-<img src="https://img.shields.io/badge/Node.js-20%2B-00ffb3?style=flat-square&logo=nodedotjs&logoColor=black">
-<img src="https://img.shields.io/badge/Baileys-MD-7c5cff?style=flat-square">
-<img src="https://img.shields.io/badge/Version-V1.0.2-ff4d6d?style=flat-square">
-<img src="https://img.shields.io/badge/Menu%20Fonts-17-ffd166?style=flat-square">
-<img src="https://img.shields.io/badge/24%2F7-Online-25D366?style=flat-square">
-<img src="https://img.shields.io/github/stars/Samkelo119/zephyrmdbot?style=flat-square&color=ff9f1c">
-<img src="https://img.shields.io/github/forks/Samkelo119/zephyrmdbot?style=flat-square&color=4cc9f0">
+<a href="https://zephyrmdbot.onrender.com/"><img src="https://img.shields.io/badge/PAIR%20NOW-zephyrmdbot.onrender.com-E8C98A?style=for-the-badge&labelColor=0B0A0F&logo=whatsapp&logoColor=25D366" alt="PAIR NOW"></a>
+&nbsp;
+<a href="https://zephyr-md-pair3.onrender.com/"><img src="https://img.shields.io/badge/PAIR%20NOW%202-Backup%20Console-5CE1C5?style=for-the-badge&labelColor=0B0A0F&logo=whatsapp&logoColor=white" alt="PAIR NOW 2"></a>
+&nbsp;
+<a href="https://wa.me/27621834910"><img src="https://img.shields.io/badge/OWNER-27621834910-9B7DFF?style=for-the-badge&labelColor=0B0A0F" alt="Owner"></a>
 
-<br>
+<br><br>
 
-[WhatsApp Channel](https://whatsapp.com/channel/0029Vb8p6DV8aKvNTp6n8n45)
-·
+<img src="https://img.shields.io/badge/Node-20%2B-111111?style=flat-square&logo=nodedotjs">
+<img src="https://img.shields.io/badge/Baileys-MD-E8C98A?style=flat-square">
+<img src="https://img.shields.io/badge/Version-V1.0.2-5CE1C5?style=flat-square">
+<img src="https://img.shields.io/badge/Menu%20Fonts-17-9B7DFF?style=flat-square">
+<img src="https://img.shields.io/badge/Uptime-24%2F7-25D366?style=flat-square">
+<img src="https://img.shields.io/github/stars/Samkelo119/zephyrmdbot?style=flat-square&color=E8C98A">
+<img src="https://img.shields.io/github/forks/Samkelo119/zephyrmdbot?style=flat-square&color=5CE1C5">
+
+<br><br>
+
+[Channel](https://whatsapp.com/channel/0029Vb8p6DV8aKvNTp6n8n45)
+&nbsp;·&nbsp;
 [GitHub](https://github.com/Samkelo119/zephyrmdbot)
-·
-[Admin Panel](https://zephyrmdbot.onrender.com/admin)
+&nbsp;·&nbsp;
+[Admin](https://zephyrmdbot.onrender.com/admin)
 
 </div>
 
 ---
 
 <p align="center">
-  <img src="https://img.shields.io/badge/-PAIR%20ONCE-7C5CFF?style=for-the-badge">
-  <img src="https://img.shields.io/badge/-STAY%20ONLINE-25D366?style=for-the-badge">
-  <img src="https://img.shields.io/badge/-17%20MENU%20FONTS-FF4D6D?style=for-the-badge">
-  <img src="https://img.shields.io/badge/-LIVE%20APIS-00E5FF?style=for-the-badge">
-  <img src="https://img.shields.io/badge/-OWNER%20LOCK-FFD166?style=for-the-badge">
+  <img src="https://img.shields.io/badge/01-NAME%20THE%20SESSION-0B0A0F?style=for-the-badge&labelColor=E8C98A">
+  <img src="https://img.shields.io/badge/02-LIVE%20WHATSAPP%20CODE-0B0A0F?style=for-the-badge&labelColor=5CE1C5">
+  <img src="https://img.shields.io/badge/03-STAY%20ONLINE-0B0A0F?style=for-the-badge&labelColor=9B7DFF">
 </p>
 
 ```text
-╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
-┃  Pair at  zephyrmdbot.onrender.com           ┃
-┃  WhatsApp > Linked Devices                   ┃
-┃  Generate a live 8-character code            ┃
-┃  Enter it within 60 seconds                  ┃
-╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
+┌──────────────────────────────────────────────────────────┐
+│  ZEPHYR MD PAIRING                                       │
+│  1. Open  https://zephyrmdbot.onrender.com               │
+│  2. Write your session name                              │
+│  3. Enter number with country code                       │
+│  4. Generate  →  live 8-character WhatsApp code          │
+│  5. Linked Devices  →  Link with phone number            │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Why ZEPHYR MD
+## Signature
 
-<table>
-  <tr>
-    <td width="50%">
+ZEPHYR MD is not a throwaway script dump. It is a branded multi-device runtime:
 
-**01  Pairing**<br>
-Live 8-character WhatsApp companion code. Never a fake `ZEPH-YRMD` code.
+| Pillar | What you get |
+| :--- | :--- |
+| Named pairing | Every user writes a session name before a code is issued |
+| Isolated sessions | Extra numbers land in `user_<number>`, never overwrite owner |
+| Always on | 10s watchdog reconnects every registered session |
+| One-message menu | Picture + full command list together, 17 fonts |
+| Per-user style | Prefix and menu font apply only to the requester |
+| Live admin | Feature toggles and API keys apply immediately |
 
-**02  Always On**<br>
-Crash guards, reconnect watchdog, false-logout ignore. Paired sessions stay online.
+Owner lock stays on **27621834910**. Footer everywhere: **Powered By MrDieHardTechX**.
 
-**03  Your Prefix**<br>
-Each user has their own prefix. After `.setprefix`, only that prefix works.
+---
 
-    </td>
-    <td width="50%">
+## Pair in 60 seconds
 
-**04  One-Message Menu**<br>
-Picture + full command list in the same message. 17 fonts via `.menustyle`.
+1. Open [zephyrmdbot.onrender.com](https://zephyrmdbot.onrender.com/)
+2. Write a session name first
+3. Enter WhatsApp number with country code, no `+`
+4. Tap **Generate Code**
+5. Phone: **Linked Devices → Link with phone number**
+6. Enter the live 8-character code within about one minute
 
-**05  Public / Private**<br>
-`.public` `.private` `.mode` — owner lock or open for everyone.
+Backup console: [zephyr-md-pair3.onrender.com](https://zephyr-md-pair3.onrender.com/)
 
-**06  Stickers + Clock**<br>
-Pack `༒ZᴇᴘʜʏʀMᴅ༆` · `.time` / `.clock` use Africa/Johannesburg.
+Owner command:
 
-    </td>
-  </tr>
-</table>
+```text
+.pair 27621834910 SessionName
+```
 
 ---
 
@@ -108,56 +106,32 @@ node bootstrap.js
 
 `bootstrap.js` installs dependencies on first run, then starts the bot on port **3000**.
 
-1. Open [zephyrmdbot.onrender.com](https://zephyrmdbot.onrender.com/)
-2. Enter your WhatsApp number with country code (no `+`)
-3. Tap **Generate** — a live code appears
-4. Phone: **Linked Devices → Link with phone number**
-5. Enter the 8-character code within about one minute
-
 ```bash
 npm install
 node index.js
 ```
 
----
-
-## Pairing
-
-The pairing console requests a real companion code from WhatsApp. Every code is different and only valid for a short time.
-
-| Step | Action |
-| :--- | :--- |
-| 1 | Open [zephyrmdbot.onrender.com](https://zephyrmdbot.onrender.com/) |
-| 2 | Enter the WhatsApp number with country code |
-| 3 | Tap **Generate** |
-| 4 | Copy the live 8-character code |
-| 5 | Phone: **Linked Devices → Link with phone number → enter the code** |
-
-Backup pair page: [zephyr-md-pair3.onrender.com](https://zephyr-md-pair3.onrender.com/)
-
-If the code expires, tap Generate again for a fresh one.
+Persistent Node is required. Serverless hosts cannot keep the WhatsApp socket open.
 
 ---
 
-## Command Map
+## Command Atlas
 
-Type `.menu` in WhatsApp for the live list with your prefix, font, and the image above.
+Type `.menu` in WhatsApp for the live list with your prefix, font, and banner.
 
-| Section | Commands |
+| Suite | Commands |
 | :--- | :--- |
 | Core | `menu` `help` `alive` `ping` `owner` `runtime` `uptime` `mode` `time` `clock` `jid` `about` `botinfo` |
 | Owner | `public` `private` `mode` `setname` `setprefix` `hack` `pair` |
-| Menu styles | `menustyle` `menustyle1` … `menustyle17` |
-| Downloaders | `song` `play` `video` `tiktok` `insta` `facebook` `apk` `ytdown` `crunchyroll` |
+| Styles | `menustyle` `menustyle1` … `menustyle17` |
+| Media | `song` `play` `video` `tiktok` `insta` `facebook` `apk` `ytdown` `crunchyroll` |
 | Stickers | `sticker` `s` `toimg` `take` `telesticker` `tts` |
 | Group | `kick` `promote` `demote` `hidetag` `tagall` `welcome` `grouplink` |
-| Moderation | `mute` `warn` `filter` `slowmode` `antilink` `antidelete` `anticall` |
-| Fun | `quote` `joke` `dice` `ship` `8ball` `meme` |
-| Network | `sslcheck` `banchecker` `banumber` `dns` `ipinfo` |
-| Live API | `crypto` `githubuser` `pokemon` `iss` `weather` `translate` |
-| Extra | `repo` `update` `support` `channel` `gpt` `openai` `metaai` |
+| Guard | `mute` `warn` `filter` `slowmode` `antilink` `antidelete` `anticall` |
+| AI | `ai` `gpt` `openai` `chatgpt` `metaai` |
+| Extra | `repo` `update` `support` `channel` |
 
-`.mode` reports PUBLIC or PRIVATE. `.public` / `.private` are owner-only.
+`.update` is public. It pulls `origin/main` and restarts so every paired bot receives the same release.
 
 ---
 
@@ -165,30 +139,32 @@ Type `.menu` in WhatsApp for the live list with your prefix, font, and the image
 
 | Variable | Purpose | Default |
 | :--- | :--- | :--- |
-| `OWNER_NUMBER` | Owner WhatsApp (no `+`) | `27621834910` |
+| `OWNER_NUMBER` | Owner WhatsApp, no `+` | `27621834910` |
 | `PORT` | Pairing / admin port | `3000` |
 | `ADMIN_PANEL_PASSWORD` | `/admin` login | `samkelonzimandesmall` |
-| `OPENAI_API_KEY` | `.ai` (optional) | unset |
+| `OPENAI_API_KEY` | Optional AI key | unset |
 
-Never commit `auth_info/`, `data/`, or `.env`.
+Never commit `auth_info/`, `data/`, or `.env`. Set `openaiApiKey` in `/admin` after deploy.
 
 ---
 
-## Layout
+## Architecture
 
 ```text
 zephyrmdbot/
-├── bootstrap.js          auto-install + start
-├── index.js              socket, pairing, command router
-├── pair.html             pairing console (live codes)
-├── settings.js           bot name, owner, timezone
+├── bootstrap.js          crash-safe launcher
+├── index.js              pairing, sessions, command router
+├── pair.html             luxury pairing console
+├── settings.js           brand, owner, timezone
 ├── commands/             command modules
-├── lib/                  menu, styles, prefix, admin
-├── admin-panel/          /admin dashboard
-├── assets/menu.jpg       menu image
-├── auth_info/            WhatsApp session (gitignored)
-└── data/                 runtime state (gitignored)
+├── lib/                  menu, styles, admin, AI helper
+├── admin-panel/          live control room
+├── assets/menu.jpg       banner used by menu, pair, README
+├── auth_info/            WhatsApp sessions  (gitignored)
+└── data/                 runtime state     (gitignored)
 ```
+
+Timezone: **Africa/Johannesburg**. Sticker pack: **ZEPHYR MD**.
 
 ---
 
@@ -200,38 +176,30 @@ See `DEPLOY.md` for Railway, Replit, Heroku, Termux, and VPS.
 pm2 start bootstrap.js --name zephyrmd-bot
 ```
 
-WhatsApp needs a **persistent** Node process. Serverless hosts cannot keep the socket open.
-
 ---
 
-## Owner
-
 <div align="center">
+
+### House of ZEPHYR
 
 | | |
 | :--- | :--- |
 | Bot | **ZEPHYR MD** |
-| Owner | **MʀDɪᴇHᴀʀᴅTᴇᴄʜX** |
+| Owner | **MrDieHardTechX** |
 | Number | [27621834910](https://wa.me/27621834910) |
 | Channel | [whatsapp.com/channel/0029Vb8p6DV8aKvNTp6n8n45](https://whatsapp.com/channel/0029Vb8p6DV8aKvNTp6n8n45) |
 | Repo | [Samkelo119/zephyrmdbot](https://github.com/Samkelo119/zephyrmdbot) |
 
 <br>
 
-**Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵**
+**Powered By MrDieHardTechX**
 
 <br>
 
-<a href="https://zephyrmdbot.onrender.com/">
-  <img src="https://img.shields.io/badge/PAIR%20NOW-Click%20To%20Connect-25D366?style=for-the-badge&logo=whatsapp&logoColor=white&labelColor=0b1220" alt="PAIR NOW">
-</a>
-&nbsp;
-<a href="https://zephyr-md-pair3.onrender.com/">
-  <img src="https://img.shields.io/badge/PAIR%20NOW%202-Backup%20Link-7C5CFF?style=for-the-badge&logo=whatsapp&logoColor=white&labelColor=0b1220" alt="PAIR NOW 2">
-</a>
+<a href="https://zephyrmdbot.onrender.com/"><img src="https://img.shields.io/badge/OPEN%20PAIRING%20CONSOLE-E8C98A?style=for-the-badge&labelColor=0B0A0F" alt="Open pairing console"></a>
 
 <br><br>
 
-<img src="assets/menu.jpg" alt="ZEPHYR MD Menu" width="620">
+<img src="assets/menu.jpg" alt="ZEPHYR MD Menu" width="640">
 
 </div>
