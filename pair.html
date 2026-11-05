@@ -1,75 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#090b10">
-  <title>ZEPHYR MD — Pairing</title>
-  <style>
-    :root{color-scheme:dark;--bg:#090b10;--panel:#121720;--line:#27313d;--gold:#e8c98a;--muted:#a2adba;--green:#73e0b0;--red:#ff8994}
-    *{box-sizing:border-box}body{margin:0;min-height:100vh;padding:24px;background:radial-gradient(ellipse at 15% 0,#202638 0,transparent 45%),var(--bg);color:#f4f3ef;font:16px system-ui,sans-serif;display:grid;place-items:center}
-    main{width:min(100%,520px);padding:30px;border:1px solid var(--line);border-radius:22px;background:rgba(18,23,32,.94);box-shadow:0 24px 80px #0008}
-    h1{margin:0;color:var(--gold);font-size:clamp(28px,7vw,38px)}p{color:var(--muted);line-height:1.55}.tag{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
-    label{display:block;margin:20px 0 8px;font-size:13px;color:var(--muted)}input{width:100%;padding:14px;border:1px solid var(--line);border-radius:10px;background:#0b0f15;color:#fff;font:inherit}input[readonly]{color:var(--gold)}
-    button{width:100%;margin-top:20px;padding:14px;border:0;border-radius:10px;background:var(--gold);color:#17130a;font:700 16px system-ui,sans-serif;cursor:pointer}button:disabled{opacity:.55;cursor:wait}
-    #status{min-height:24px;margin-top:16px;color:var(--muted);overflow-wrap:anywhere}.code{margin-top:12px;padding:18px;border:1px dashed #756548;border-radius:12px;text-align:center;color:var(--gold);font:700 clamp(24px,8vw,34px) ui-monospace,monospace;letter-spacing:.12em;overflow-wrap:anywhere}.small{font-size:12px;color:var(--muted)}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#07060a">
+<title>ZEPHYR MD — Pairing Console</title>
+<meta name="description" content="Pair ZEPHYR MD with a live WhatsApp companion code.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Syne:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root{--ink:#07060a;--panel:rgba(16,14,22,.82);--line:rgba(232,201,138,.18);--gold:#e8c98a;--gold2:#f4e3b8;--teal:#5ce1c5;--rose:#ff6b8a;--text:#f6f1e8;--muted:#a29a8e;--shadow:0 30px 80px #0008}
+*{box-sizing:border-box}html{min-height:100%}body{margin:0;min-height:100vh;background:var(--ink);color:var(--text);font-family:Syne,sans-serif;overflow-x:hidden}a{color:var(--gold);text-decoration:none}button,input{font:inherit}
+.orb{position:fixed;border-radius:50%;filter:blur(85px);pointer-events:none;z-index:0}.orb.a{width:420px;height:420px;background:#e8c98a29;top:-100px;left:-100px}.orb.b{width:520px;height:520px;background:#5ce1c51f;right:-130px;bottom:-160px}.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.08;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}.page{position:relative;z-index:2;min-height:100vh}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:18px 28px;background:#07060abf;border-bottom:1px solid var(--line);backdrop-filter:blur(18px)}.brand{display:flex;align-items:center;gap:12px}.mark{width:40px;height:40px;border-radius:13px;background:linear-gradient(145deg,var(--gold),#b48a3c);color:#1a1408;display:grid;place-items:center;font:700 22px 'Cormorant Garamond',serif}.brand-name{font:600 27px 'Cormorant Garamond',serif}.brand-sub{font:10px 'IBM Plex Mono',monospace;color:var(--muted);letter-spacing:2px;text-transform:uppercase}.nav-links{display:flex;gap:10px}.nav-links a{width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;color:var(--text)}.nav-links a:hover{color:var(--gold);border-color:var(--gold)}
+.hero{max-width:1120px;margin:auto;padding:62px 24px 32px;text-align:center}.kicker{display:inline-flex;gap:8px;align-items:center;padding:8px 13px;border:1px solid var(--line);border-radius:999px;color:var(--gold);font:11px 'IBM Plex Mono',monospace;letter-spacing:2px;text-transform:uppercase}.hero h1{margin:22px 0 12px;font:600 clamp(42px,8vw,76px)/.95 'Cormorant Garamond',serif}.hero h1 em{color:var(--gold2)}.hero p{max-width:650px;margin:0 auto;color:var(--muted);line-height:1.7}.pills{display:flex;justify-content:center;flex-wrap:wrap;gap:9px;margin-top:22px}.pill{padding:7px 11px;border:1px solid #5ce1c544;border-radius:999px;color:var(--teal);font:10px 'IBM Plex Mono',monospace;letter-spacing:1px;text-transform:uppercase}
+.wrap{max-width:1080px;margin:0 auto;padding:18px 24px 70px;display:grid;grid-template-columns:1.15fr .85fr;gap:22px}.card{position:relative;padding:26px;border:1px solid var(--line);border-radius:24px;background:var(--panel);backdrop-filter:blur(18px);box-shadow:var(--shadow)}.card h2,.card h3{margin:0 0 8px;font:600 30px 'Cormorant Garamond',serif}.hint{margin:0 0 20px;color:var(--muted);font-size:13px;line-height:1.6}.steps{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}.step{padding:7px 11px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font:11px 'IBM Plex Mono',monospace}.step.active{background:var(--gold);color:var(--ink);border-color:var(--gold)}label{display:block;margin:15px 0 7px;color:var(--muted);font:11px 'IBM Plex Mono',monospace;letter-spacing:1px;text-transform:uppercase}input{width:100%;padding:14px 15px;border:1px solid var(--line);border-radius:13px;background:#07060ab3;color:var(--text);font:14px 'IBM Plex Mono',monospace}input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 4px #e8c98a1f}input::placeholder{color:#696257}.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;width:100%;margin-top:19px;padding:15px;border:0;border-radius:13px;background:linear-gradient(90deg,var(--gold),#c9a057);color:#1a1408;font-weight:800;cursor:pointer;box-shadow:0 12px 30px #e8c98a2e}.btn:hover{transform:translateY(-1px)}.btn:disabled{opacity:.55;cursor:wait;transform:none}
+.loading{min-height:25px;margin-top:13px;text-align:center;color:var(--muted);font:12px 'IBM Plex Mono',monospace}.loading.error{color:var(--rose)}.loading.success{color:var(--teal)}.code-box{margin-top:15px;padding:18px 12px;border:1px dashed #e8c98a66;border-radius:17px;background:#e8c98a0a;text-align:center}.pairing-result{min-height:40px;color:var(--gold2);font:600 clamp(26px,6vw,36px) 'IBM Plex Mono',monospace;letter-spacing:7px;overflow-wrap:anywhere}.copy-btn{display:none;margin:10px auto 0;padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:#ffffff0a;color:var(--muted);cursor:pointer;font:11px 'IBM Plex Mono',monospace}.copy-btn:hover{color:var(--gold)}.side{display:flex;flex-direction:column;gap:22px}.guide ol{margin:0;padding-left:20px;color:var(--muted);line-height:1.8;font-size:13px}.guide li{padding:4px 0}.guide b{color:var(--text)}.footer{text-align:center;padding:26px 15px 38px;border-top:1px solid var(--line);color:var(--muted);font:11px 'IBM Plex Mono',monospace;letter-spacing:1px}.footer b{color:var(--gold)}
+@media(max-width:850px){.wrap{grid-template-columns:1fr}.hero{padding-top:45px}.nav{padding:14px 17px}}@media(max-width:480px){body{padding:0}.card{padding:21px}.wrap{padding:12px 15px 45px}.hero{padding:42px 18px 25px}.brand-name{font-size:23px}}
+</style>
 </head>
 <body>
-  <main>
-    <div class="tag">ZEPHYR MD · WhatsApp pairing</div>
-    <h1>Generate a pairing code</h1>
-    <p>Use this only for a WhatsApp account you own or are authorized to link. Enter the code in WhatsApp under <b>Linked devices → Link with phone number</b>.</p>
-    <form id="pairForm">
-      <label for="sessionName">Session name</label>
-      <input id="sessionName" name="sessionName" maxlength="32" autocomplete="off" placeholder="For example: My ZEPHYR bot" required>
-      <label for="pairNumber">Configured owner number (country code, digits only)</label>
-      <input id="pairNumber" value="27621834910" readonly aria-readonly="true">
-      <button id="pairButton" type="submit">Generate pairing code</button>
-    </form>
-    <div id="status" role="status" aria-live="polite"></div>
-    <div id="code" class="code" hidden></div>
-    <p class="small">The code is temporary. Keep the bot backend online while pairing.</p>
+<div class="orb a"></div><div class="orb b"></div><div class="grain"></div>
+<div class="page">
+  <nav class="nav"><div class="brand"><div class="mark">Z</div><div><div class="brand-name">ZEPHYR MD</div><div class="brand-sub">Multi-device pairing</div></div></div><div class="nav-links"><a href="https://github.com/Samkelo119/zephyrmdbot" target="_blank" rel="noreferrer" aria-label="GitHub" title="GitHub"><i class="fab fa-github"></i></a><a href="https://whatsapp.com/channel/0029Vb8p6DV8aKvNTp6n8n45" target="_blank" rel="noreferrer" aria-label="WhatsApp channel" title="WhatsApp"><i class="fab fa-whatsapp"></i></a><a href="/admin" aria-label="Admin" title="Admin"><i class="fas fa-shield-halved"></i></a></div></nav>
+  <section class="hero"><div class="kicker"><i class="fas fa-bolt"></i> Live companion pairing</div><h1>Name the session.<br><em>Claim the code.</em></h1><p>Enter a session name and the WhatsApp number with its country code. Your always-on bot backend will request a real temporary pairing code from WhatsApp.</p><div class="pills"><span class="pill">Session name required</span><span class="pill">Live WhatsApp code</span><span class="pill">Link with phone number</span></div></section>
+  <main class="wrap">
+    <section class="card"><div class="steps"><span class="step active" id="stepA">1 · Name + number</span><span class="step" id="stepB">2 · Live code</span></div><h2>Pair WhatsApp</h2><p class="hint">Use only a number you own or are authorized to link. Enter the code in WhatsApp under Linked devices → Link with phone number.</p>
+      <form id="pairForm"><label for="sessionName">Session name</label><input id="sessionName" name="sessionName" maxlength="32" autocomplete="off" placeholder="My ZEPHYR bot" required><label for="pairNumber">WhatsApp number with country code</label><input id="pairNumber" name="number" type="tel" inputmode="numeric" autocomplete="tel" placeholder="27621834910" value="27621834910" required><button class="btn" id="pairBtn" type="submit"><i class="fas fa-link"></i> Generate Code</button></form>
+      <div id="loadingText" class="loading" role="status" aria-live="polite"></div><div class="code-box"><div class="pairing-result" id="pairingResult"></div><button id="copyCodeBtn" class="copy-btn" type="button"><i class="fas fa-copy"></i> Copy Code</button></div>
+    </section>
+    <aside class="side"><section class="card guide"><h3>How it works</h3><ol><li><b>Name the session</b> so it is easy to identify.</li><li>Enter the WhatsApp number with country code, digits only.</li><li>Tap Generate and wait for a live code from the bot backend.</li><li>On your phone, open <b>Linked devices → Link with phone number</b>.</li><li>Enter the temporary code promptly.</li></ol></section><section class="card"><h3>Important</h3><p class="hint">Vercel hosts this page; it does not keep a WhatsApp connection running. Code generation requires the configured always-on bot backend to be available.</p><a href="https://zephyr-md-pair3.onrender.com/" target="_blank" rel="noreferrer">Open backend pairing page ↗</a></section></aside>
   </main>
-  <script>
-    window.ZEPHYR_BACKEND = window.ZEPHYR_BACKEND || '';
-    const DEFAULT_BACKEND = 'https://zephyr-md-pair3.onrender.com';
-    const backend = String(window.ZEPHYR_BACKEND || DEFAULT_BACKEND).replace(/\/+$/, '');
-    const form = document.getElementById('pairForm');
-    const button = document.getElementById('pairButton');
-    const status = document.getElementById('status');
-    const codeBox = document.getElementById('code');
-
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const sessionName = document.getElementById('sessionName').value.replace(/\s+/g, ' ').trim();
-      if (!/^[A-Za-z0-9][A-Za-z0-9 _.-]{1,31}$/.test(sessionName)) {
-        status.textContent = 'Use a 2–32 character session name with letters, numbers, spaces, _ . or -.';
-        status.style.color = 'var(--red)';
-        return;
-      }
-
-      button.disabled = true;
-      codeBox.hidden = true;
-      status.style.color = 'var(--muted)';
-      status.textContent = 'Connecting to the pairing backend. This can take a little while if it is waking up…';
-      fetch(backend + '/api/pair', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ number: '27621834910', sessionName })
-      }).then(r => r.json()).then(data => {
-        if (!data || !data.code) throw new Error((data && data.error) || 'The backend did not return a pairing code.');
-        codeBox.textContent = data.code;
-        codeBox.hidden = false;
-        status.textContent = 'Code ready — enter it in WhatsApp → Linked devices → Link with phone number.';
-        status.style.color = 'var(--green)';
-      }).catch(error => {
-        status.textContent = error.message || 'Could not reach the pairing backend. Check that the Render service is running.';
-        status.style.color = 'var(--red)';
-      }).finally(() => {
-        button.disabled = false;
-      });
-    });
-  </script>
+  <footer class="footer">ZEPHYR MD · <b>Powered By MrDieHardTechX</b></footer>
+</div>
+<script>
+  window.ZEPHYR_BACKEND = window.ZEPHYR_BACKEND || '';
+  const LIVE_BACKEND = 'https://zephyr-md-pair3.onrender.com';
+  function resolveBackend(){if(window.ZEPHYR_BACKEND)return String(window.ZEPHYR_BACKEND).replace(/\/+$/,'');if(/vercel\.(app|com)$/i.test(location.hostname))return LIVE_BACKEND;return location.origin;}
+  const BACKEND_URL=resolveBackend();
+  const form=document.getElementById('pairForm'),button=document.getElementById('pairBtn'),status=document.getElementById('loadingText'),result=document.getElementById('pairingResult'),copy=document.getElementById('copyCodeBtn');
+  form.addEventListener('submit',async event=>{event.preventDefault();const sessionName=document.getElementById('sessionName').value.replace(/\s+/g,' ').trim();let number=document.getElementById('pairNumber').value.replace(/\D/g,'');if(number.startsWith('00'))number=number.slice(2);if(!/^[A-Za-z0-9][A-Za-z0-9 _.-]{1,31}$/.test(sessionName)){status.className='loading error';status.textContent='Session name must be 2–32 characters: letters, numbers, spaces, _ . or -.';return;}if(number.startsWith('0')||number.length<10||number.length>15){status.className='loading error';status.textContent='Enter a valid international number: country code and digits only, no leading 0.';return;}button.disabled=true;result.textContent='';copy.style.display='none';status.className='loading';status.textContent='Connecting to the pairing backend. It may take a moment to wake up…';document.getElementById('stepA').classList.remove('active');document.getElementById('stepB').classList.add('active');try{const response=await fetch(BACKEND_URL+'/api/pair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({number,sessionName})});const data=await response.json().catch(()=>({}));if(!response.ok||!data.code)throw new Error(data.error||`Backend returned HTTP ${response.status}`);result.textContent=data.code;copy.style.display='inline-flex';copy.onclick=async()=>{try{await navigator.clipboard.writeText(data.code);copy.innerHTML='<i class="fas fa-check"></i> Copied';setTimeout(()=>copy.innerHTML='<i class="fas fa-copy"></i> Copy Code',1500);}catch{status.textContent='Clipboard unavailable. Select and copy the code above.';}};status.className='loading success';status.textContent='Code ready. Enter it in WhatsApp → Linked devices → Link with phone number.';}catch(error){status.className='loading error';status.textContent='Pairing failed: '+(error.message||'Could not reach the backend. Check that the Render bot service is running.');}finally{button.disabled=false;}});
+</script>
 </body>
 </html>
