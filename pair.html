@@ -1,2 +1,75 @@
-  window.ZEPHYR_BACKEND = window.ZEPHYR_BACKEND || '';
-  const LIVE_BACKEND = 'https://zephyr-md-pair3.onrender.com';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090b10">
+  <title>ZEPHYR MD — Pairing</title>
+  <style>
+    :root{color-scheme:dark;--bg:#090b10;--panel:#121720;--line:#27313d;--gold:#e8c98a;--muted:#a2adba;--green:#73e0b0;--red:#ff8994}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;padding:24px;background:radial-gradient(ellipse at 15% 0,#202638 0,transparent 45%),var(--bg);color:#f4f3ef;font:16px system-ui,sans-serif;display:grid;place-items:center}
+    main{width:min(100%,520px);padding:30px;border:1px solid var(--line);border-radius:22px;background:rgba(18,23,32,.94);box-shadow:0 24px 80px #0008}
+    h1{margin:0;color:var(--gold);font-size:clamp(28px,7vw,38px)}p{color:var(--muted);line-height:1.55}.tag{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
+    label{display:block;margin:20px 0 8px;font-size:13px;color:var(--muted)}input{width:100%;padding:14px;border:1px solid var(--line);border-radius:10px;background:#0b0f15;color:#fff;font:inherit}input[readonly]{color:var(--gold)}
+    button{width:100%;margin-top:20px;padding:14px;border:0;border-radius:10px;background:var(--gold);color:#17130a;font:700 16px system-ui,sans-serif;cursor:pointer}button:disabled{opacity:.55;cursor:wait}
+    #status{min-height:24px;margin-top:16px;color:var(--muted);overflow-wrap:anywhere}.code{margin-top:12px;padding:18px;border:1px dashed #756548;border-radius:12px;text-align:center;color:var(--gold);font:700 clamp(24px,8vw,34px) ui-monospace,monospace;letter-spacing:.12em;overflow-wrap:anywhere}.small{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">ZEPHYR MD · WhatsApp pairing</div>
+    <h1>Generate a pairing code</h1>
+    <p>Use this only for a WhatsApp account you own or are authorized to link. Enter the code in WhatsApp under <b>Linked devices → Link with phone number</b>.</p>
+    <form id="pairForm">
+      <label for="sessionName">Session name</label>
+      <input id="sessionName" name="sessionName" maxlength="32" autocomplete="off" placeholder="For example: My ZEPHYR bot" required>
+      <label for="pairNumber">Configured owner number (country code, digits only)</label>
+      <input id="pairNumber" value="27621834910" readonly aria-readonly="true">
+      <button id="pairButton" type="submit">Generate pairing code</button>
+    </form>
+    <div id="status" role="status" aria-live="polite"></div>
+    <div id="code" class="code" hidden></div>
+    <p class="small">The code is temporary. Keep the bot backend online while pairing.</p>
+  </main>
+  <script>
+    window.ZEPHYR_BACKEND = window.ZEPHYR_BACKEND || '';
+    const DEFAULT_BACKEND = 'https://zephyr-md-pair3.onrender.com';
+    const backend = String(window.ZEPHYR_BACKEND || DEFAULT_BACKEND).replace(/\/+$/, '');
+    const form = document.getElementById('pairForm');
+    const button = document.getElementById('pairButton');
+    const status = document.getElementById('status');
+    const codeBox = document.getElementById('code');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const sessionName = document.getElementById('sessionName').value.replace(/\s+/g, ' ').trim();
+      if (!/^[A-Za-z0-9][A-Za-z0-9 _.-]{1,31}$/.test(sessionName)) {
+        status.textContent = 'Use a 2–32 character session name with letters, numbers, spaces, _ . or -.';
+        status.style.color = 'var(--red)';
+        return;
+      }
+
+      button.disabled = true;
+      codeBox.hidden = true;
+      status.style.color = 'var(--muted)';
+      status.textContent = 'Connecting to the pairing backend. This can take a little while if it is waking up…';
+      fetch(backend + '/api/pair', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number: '27621834910', sessionName })
+      }).then(r => r.json()).then(data => {
+        if (!data || !data.code) throw new Error((data && data.error) || 'The backend did not return a pairing code.');
+        codeBox.textContent = data.code;
+        codeBox.hidden = false;
+        status.textContent = 'Code ready — enter it in WhatsApp → Linked devices → Link with phone number.';
+        status.style.color = 'var(--green)';
+      }).catch(error => {
+        status.textContent = error.message || 'Could not reach the pairing backend. Check that the Render service is running.';
+        status.style.color = 'var(--red)';
+      }).finally(() => {
+        button.disabled = false;
+      });
+    });
+  </script>
+</body>
+</html>
