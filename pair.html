@@ -76,9 +76,9 @@
   .brand-sub{font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:2.4px; text-transform:uppercase; margin-top:3px;}
   .nav-links{display:flex; gap:10px; flex-wrap:wrap;}
   .nav-links a, .ghost{
-    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.8px; text-transform:uppercase;
-    border:1px solid var(--line); color:var(--text); padding:9px 14px; border-radius:999px;
-    background:rgba(255,255,255,0.03);
+    width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center;
+    border:1px solid var(--line); color:var(--text); border-radius:999px;
+    background:rgba(255,255,255,0.03); font-size:15px;
   }
   .nav-links a:hover, .ghost:hover{border-color:var(--line-2); color:var(--gold);}
 
@@ -259,9 +259,9 @@
       </div>
     </div>
     <div class="nav-links">
-      <a href="https://github.com/Samkelo119/zephyrmdbot" target="_blank">GitHub</a>
-      <a href="https://whatsapp.com/channel/0029Vb8p6DV8aKvNTp6n8n45" target="_blank">Channel</a>
-      <a href="/admin" target="_blank">Admin</a>
+      <a href="https://github.com/Samkelo119/zephyrmdbot" target="_blank" title="GitHub" aria-label="GitHub"><i class="fab fa-github"></i></a>
+      <a href="https://whatsapp.com/channel/0029Vb8p6DV8aKvNTp6n8n45" target="_blank" title="Channel" aria-label="Channel"><i class="fab fa-whatsapp"></i></a>
+      <a href="/admin" target="_blank" title="Admin" aria-label="Admin"><i class="fas fa-shield-halved"></i></a>
     </div>
   </nav>
 
