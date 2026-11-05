@@ -1,0 +1,10 @@
+node_modules
+auth_info
+auth_info_backup
+data
+tmp
+.env
+.git
+*.zip
+*.log
+package-lock.json

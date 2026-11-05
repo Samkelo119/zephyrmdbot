@@ -1,7 +1,7 @@
 {
-  "name": "awais-cyber-admin-vercel",
-  "version": "1.0.0",
+  "name": "zephyrmd-vercel",
+  "version": "1.0.2",
   "private": true,
-  "description": "Vercel-hosted reverse proxy so the Admin Panel opens at a Vercel URL, forwarding to your real bot backend (Railway/Replit/Heroku/Termux/etc).",
+  "description": "Vercel-ready pairing console and admin proxy for ZEPHYR MD. Forwards to the always-on bot backend.",
   "engines": { "node": ">=18.0.0" }
 }

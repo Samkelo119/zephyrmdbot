@@ -17,7 +17,7 @@ const socketIo = require('socket.io');
 const fs = require('fs-extra');
 const path = require('path');
 const axios = require('axios');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, downloadContentFromMessage, jidNormalizedUser, Browsers, delay, generateWAMessageFromContent, proto } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, downloadContentFromMessage, jidNormalizedUser, Browsers, delay, generateWAMessageFromContent, prepareWAMessageMedia, proto } = require('@whiskeysockets/baileys');
 const P = require('pino');
 const { OpenAI } = require('openai');
 
@@ -110,37 +110,37 @@ const { antileft, antiLeftWatcher } = require('./commands/antileft');
 async function sendPairingCodeCard(sock, jid, code, number, quoted, sessionName) {
     const display = String(code || '').trim();
     const copyValue = display.replace(/[^A-Za-z0-9]/g, '');
-    const spaced = display.replace(/-/g, '  ');
-    const nameLine = sessionName ? `┃  ɴᴀᴍᴇ    ${sessionName}\n` : '';
-    const caption =
-`╭━━━〔 ⚡ZᴇPʜʏʀ~Mᴅ⚡ 〕━━━╮
-┃
-┃  Pᴀɪʀɪɴɢ Cᴏᴅᴇ Rᴇᴀᴅʏ
-┃  ━━━━━━━━━━━━━━━━━
-${nameLine}┃  ɴᴜᴍʙᴇʀ  ${number}
-┃
-┃     *${spaced}*
-┃
-┃  Cᴏᴘʏ   \`${copyValue}\`
-┃
-┃  WhatsApp → Linked Devices
-┃  Link with phone number
-┃  Enter this code within 60s
-┃
-╰━━━〔 Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵 〕━━━╯`;
-    const menuImg = fs.existsSync(path.join(__dirname, 'assets', 'menu.jpg'))
-        ? path.join(__dirname, 'assets', 'menu.jpg')
-        : null;
+    const nameLine = sessionName ? `SESSION  ${sessionName}\n` : '';
+    const bodyText =
+`${nameLine}NUMBER   ${number}
+CODE     ${display}
+
+Linked Devices → Link with phone number
+Enter within 60 seconds`;
+    const fallback =
+`▰ ZEPHYR MD ▰  COPY CODE
+${nameLine}NUMBER  ${number}
+
+${display}
+
+Tap COPY CODE on the card below.
+✧ Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵`;
     try {
-        if (menuImg) {
-            await sock.sendMessage(jid, { image: fs.readFileSync(menuImg), caption, skipStyle: true }, { quoted });
-        } else {
-            await sock.sendMessage(jid, { text: caption, skipStyle: true }, { quoted });
+        await sock.sendMessage(jid, { text: fallback, skipStyle: true }, { quoted });
+    } catch (e) {}
+    try {
+        const menuImg = path.join(__dirname, 'assets', 'menu.jpg');
+        const header = { title: 'ZEPHYR MD  PAIR', hasMediaAttachment: false };
+        if (fs.existsSync(menuImg) && sock.waUploadToServer) {
+            const media = await prepareWAMessageMedia(
+                { image: fs.readFileSync(menuImg) },
+                { upload: sock.waUploadToServer }
+            );
+            if (media && media.imageMessage) {
+                header.hasMediaAttachment = true;
+                header.imageMessage = media.imageMessage;
+            }
         }
-    } catch (e) {
-        await sock.sendMessage(jid, { text: caption, skipStyle: true }, { quoted }).catch(() => {});
-    }
-    try {
         const msg = generateWAMessageFromContent(jid, {
             viewOnceMessage: {
                 message: {
@@ -149,7 +149,8 @@ ${nameLine}┃  ɴᴜᴍʙᴇʀ  ${number}
                         deviceListMetadata: {}
                     },
                     interactiveMessage: proto.Message.InteractiveMessage.create({
-                        body: proto.Message.InteractiveMessage.Body.create({ text: `CODE  ${display}\nCOPY  ${copyValue}` }),
+                        header: proto.Message.InteractiveMessage.Header.create(header),
+                        body: proto.Message.InteractiveMessage.Body.create({ text: bodyText }),
                         footer: proto.Message.InteractiveMessage.Footer.create({ text: 'Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵' }),
                         nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
                             buttons: [{
@@ -166,7 +167,9 @@ ${nameLine}┃  ɴᴜᴍʙᴇʀ  ${number}
             }
         }, { userJid: sock.user && sock.user.id, quoted });
         await sock.relayMessage(jid, msg.message, { messageId: msg.key.id });
-    } catch (e) {}
+    } catch (e) {
+        await sock.sendMessage(jid, { text: `COPY CODE\n${copyValue}`, skipStyle: true }, { quoted }).catch(() => {});
+    }
 }
 
 function wrapExec(mod) {

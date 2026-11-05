@@ -1,8 +1,6 @@
 const fs   = require('fs');
 const path = require('path');
 
-const FOOTER = '\n\n> ᴘᴏᴡᴇʀᴇᴅ ʙʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX';
-
 module.exports = {
     name: 'owner',
     aliases: ['creator', 'developer', 'dev', 'admin'],
@@ -13,23 +11,16 @@ module.exports = {
             const ownerName   = 'MʀDɪᴇHᴀʀᴅTᴇᴄʜX';
 
             const text = [
-                `╔══〔 👑 ᴏᴡɴᴇʀ ɪɴꜰᴏ 〕══╗`,
-                `║    𝑴𝑹𝑫𝑰𝑬𝑯𝑨𝑹𝑫 𝑻𝑬𝑪𝑯    ║`,
-                `╚═══════════════════════╝`,
-                ``,
-                `✦  *ɴᴀᴍᴇ*        ➜  MʀDɪᴇHᴀʀᴅTᴇᴄʜX`,
-                `✦  *ɴᴜᴍʙᴇʀ*      ➜  +${ownerNumber}`,
-                `✦  *ᴡʜᴀᴛꜱᴀᴘᴘ*   ➜  wa.me/${ownerNumber}`,
-                `✦  *ɢɪᴛʜᴜʙ*      ➜  CᴏMɪɴɢ/Sᴏᴏɴ`,
-                `✦  *ꜱᴛᴀᴛᴜꜱ*      ➜  🟢 ᴏɴʟɪɴᴇ & ᴀᴄᴛɪᴠᴇ`,
-                `✦  *ʀᴏʟᴇ*        ➜  Dᴇᴠ & Oᴡɴᴇʀ`,
-                ``,
-                `〘 ᴄᴏɴᴛᴀᴄᴛ ᴍᴇ ꜰᴏʀ ꜱᴜᴘᴘᴏʀᴛ & ꜰᴇᴀᴛᴜʀᴇꜱ 〙`,
-            ].join('\n') + FOOTER;
+                `NAME      MrDieHardTechX`,
+                `NUMBER    +${ownerNumber}`,
+                `WHATSAPP  wa.me/${ownerNumber}`,
+                `GITHUB    github.com/Samkelo119/zephyrmdbot`,
+                `ROLE      Owner and developer`
+            ].join('\n');
 
-            const ownerImg = path.join(__dirname, '../../assets/owner_image.jpg');
-            const ownerPng = path.join(__dirname, '../../assets/owner_image.png');
-            const menuImg  = path.join(__dirname, '../../assets/menu_image.jpg');
+            const ownerImg = path.join(__dirname, '../assets/owner_image.jpg');
+            const ownerPng = path.join(__dirname, '../assets/owner_image.png');
+            const menuImg  = path.join(__dirname, '../assets/menu.jpg');
             const imgPath  = fs.existsSync(ownerImg) ? ownerImg
                 : fs.existsSync(ownerPng) ? ownerPng
                 : fs.existsSync(menuImg) ? menuImg : null;

@@ -30,7 +30,7 @@ function getServers() {
     if (process.env.BACKEND_URL) {
         return [{ name: 'Default', url: process.env.BACKEND_URL.replace(/\/+$/, '') }];
     }
-    return [];
+    return [{ name: 'ZEPHYR MD', url: 'https://zephyrmdbot.onrender.com' }];
 }
 
 module.exports = { getServers };

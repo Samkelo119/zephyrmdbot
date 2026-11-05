@@ -46,43 +46,27 @@ module.exports = {
     messages: {
 
         online:
-        `
-╭━━━〔 ⚡ZᴇPʜʏʀ~Mᴅ⚡ 〕━━━╮
-
-✅ System Online
-🚀 Multi Device Active
-🛡️ Security Enabled
-📦 Version V1.0.2
-
-Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵
-╰━━━━━━━━━━━━━━━━╯
-        `,
+        `▰ ZEPHYR MD ▰
+  Online. Multi-device live.
+  Security armed. V1.0.2
+──────────────
+✧ Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵`,
 
         reconnecting:
-        `
-╭━━━〔 ⚡ZᴇPʜʏʀ~Mᴅ⚡ 〕━━━╮
-
-🔄 Reconnecting
-🚀 Session restored
-🛡️ Stay online 24/7
-📦 Version V1.0.2
-
-Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵
-╰━━━━━━━━━━━━━━━━╯
-        `,
-
+        `▰ ZEPHYR MD ▰
+  Session restored. Staying online 24/7.
+  V1.0.2
+──────────────
+✧ Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵`,
 
         pair:
-        `
-🔐 Pairing System Started
-
-⚡ Secure Connection
-⚡ZᴇPʜʏʀ~Mᴅ⚡
-        `,
-
+        `▰ ZEPHYR MD ▰
+  Pairing channel open.
+──────────────
+✧ Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵`,
 
         error:
-        "❌ System Error Occurred"
+        "System error. Try again."
     },
 
 

@@ -495,7 +495,7 @@
       else { width += 2; document.getElementById('progressBar').style.width = width + '%'; }
     }, 100);
 
-    fetch('/api/pair', {
+    fetch(BACKEND_URL + '/api/pair', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ number, sessionName })
@@ -503,7 +503,7 @@
       if (data && data.code) {
         showCode(data.code);
         const poll = setInterval(() => {
-          fetch('/api/pair-status?number=' + encodeURIComponent(number)).then(r => r.json()).then(s => {
+          fetch(BACKEND_URL + '/api/pair-status?number=' + encodeURIComponent(number)).then(r => r.json()).then(s => {
             if (s && s.connected) {
               clearInterval(poll);
               socket.emit('connection-status', s);

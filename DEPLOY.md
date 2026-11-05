@@ -61,8 +61,21 @@ resolves fresh every time and can't go stale. If you ever generate your own
 (`npm install` again) any time you add/remove a dependency, or you'll hit
 this same error.
 
-## Vercel — read this before trying
-Vercel **cannot run the bot itself** (see `vercel-admin/README.md` for exactly why — it's a Vercel platform limitation, true for every WhatsApp bot, not specific to this project). What Vercel *can* host is a proxy front-end for your **Admin Panel**, pointed at wherever you deployed the real bot (Railway/Replit/Heroku/Katabump/Termux). See `vercel-admin/README.md` for the 5-minute setup.
+## Vercel — one-click pairing site
+
+This repo is Vercel-ready at the root (`vercel.json` + `api/`).
+
+Vercel **cannot hold the WhatsApp socket**. It hosts the pairing console and admin proxy. The live bot stays on Render / Railway / a VPS.
+
+1. Open [Deploy with Vercel](https://vercel.com/new/clone?repository-url=https://github.com/Samkelo119/zephyrmdbot&env=BACKEND_URL&project-name=zephyrmd-pair)
+2. Import `https://github.com/Samkelo119/zephyrmdbot`
+3. Environment variable (optional if using the default Render bot):
+   ```
+   BACKEND_URL = https://zephyrmdbot.onrender.com
+   ```
+4. Deploy. Your URL serves `/` (pair) and `/admin`.
+
+Or in the Vercel dashboard: **Add New → Project → Import GitHub repo**. Framework preset: Other. Root directory: `.`
 
 ## Environment variables (all hosts)
 | Variable | Purpose | Default |

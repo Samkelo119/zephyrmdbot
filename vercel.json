@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "framework": null,
+  "installCommand": "echo skip-bot-install",
+  "buildCommand": "echo vercel-ready",
+  "rewrites": [
+    { "source": "/", "destination": "/api/home" },
+    { "source": "/go", "destination": "/api/go" },
+    { "source": "/switch", "destination": "/api/switch" },
+    { "source": "/admin", "destination": "/api/proxy" },
+    { "source": "/admin/:path*", "destination": "/api/proxy/:path*" },
+    { "source": "/pair", "destination": "/api/pair" },
+    { "source": "/pair/:path*", "destination": "/api/pair/:path*" },
+    { "source": "/api/pair", "destination": "/api/pair/api/pair" },
+    { "source": "/api/pair-status", "destination": "/api/pair/api/pair-status" },
+    { "source": "/assets/:path*", "destination": "/api/pair/assets/:path*" },
+    { "source": "/socket.io/:path*", "destination": "/api/pair/socket.io/:path*" }
+  ]
+}

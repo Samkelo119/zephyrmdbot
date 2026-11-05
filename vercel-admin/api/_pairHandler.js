@@ -63,7 +63,10 @@ module.exports = async function pairHandler(req, res) {
 
         if (contentType.includes('text/html')) {
             let html = await backendRes.text();
-            // Point the live pairing socket straight at the real backend.
+            html = html.replace(
+                'const BACKEND_URL = window.location.origin;',
+                `const BACKEND_URL = "${cleanBackend}";`
+            );
             html = html.replace(
                 'const socket = io();',
                 `const socket = io("${cleanBackend}", { transports: ["websocket", "polling"] });`

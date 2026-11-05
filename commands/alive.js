@@ -2,8 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const botClock = require('../lib/botClock');
 
-const FOOTER = '\n\n> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ZᴇPʜʏʀ~Mᴅ';
-
 module.exports = {
     name: 'alive',
     aliases: ['status', 'bot', 'running'],
@@ -12,20 +10,14 @@ module.exports = {
         try {
             const ramMB = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1);
             const text = [
-                `╔══〔 ⚡ZᴇPʜʏʀ~Mᴅ⚡ 〕══╗`,
-                `║   Bᴏᴛ Sᴛᴀᴛᴜs Cʜᴇᴄᴋ   ║`,
-                `╚═══════════════════════╝`,
-                ``,
-                `🟢  *ꜱᴛᴀᴛᴜꜱ*      ➜  ᴏɴʟɪɴᴇ`,
-                `⏱️  *ʀᴜɴᴛɪᴍᴇ*     ➜  ${botClock.formatDuration(botClock.uptimeMs())}`,
-                `🕐  *ꜱᴛᴀʀᴛᴇᴅ*     ➜  ${botClock.startedLabel()}`,
-                `📅  *ɴᴏᴡ*         ➜  ${botClock.nowLabel()}`,
-                `💾  *ʀᴀᴍ ᴜꜱᴇᴅ*    ➜  ${ramMB} ᴍʙ`,
-                `👑  *ᴅᴇᴠᴇʟᴏᴘᴇʀ*   ➜  MʀDɪᴇHᴀʀᴅTᴇᴄʜX`,
-                `📞  *ᴡʜᴀᴛꜱᴀᴘᴘ*    ➜  +27621834910`,
-                ``,
-                `〘 Tʜᴇ Bᴏᴛ ɪs Rᴜɴɴɪɴɢ Sᴍᴏᴏᴛʜʟʏ 〙`,
-            ].join('\n') + FOOTER;
+                `STATUS    online`,
+                `RUNTIME   ${botClock.formatDuration(botClock.uptimeMs())}`,
+                `STARTED   ${botClock.startedLabel()}`,
+                `NOW       ${botClock.nowLabel()}`,
+                `RAM       ${ramMB} MB`,
+                `OWNER     MrDieHardTechX`,
+                `WHATSAPP  +27621834910`
+            ].join('\n');
 
             const ownerImg = path.join(__dirname, '../assets/owner_image.png');
             const menuImg = path.join(__dirname, '../assets/menu.jpg');

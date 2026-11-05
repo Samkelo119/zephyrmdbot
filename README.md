@@ -18,6 +18,8 @@ Named sessions. Live companion codes. One-message menus. Always on.
 <a href="https://zephyr-md-pair3.onrender.com/"><img src="https://img.shields.io/badge/PAIR%20NOW%202-Backup%20Console-5CE1C5?style=for-the-badge&labelColor=0B0A0F&logo=whatsapp&logoColor=white" alt="PAIR NOW 2"></a>
 &nbsp;
 <a href="https://wa.me/27621834910"><img src="https://img.shields.io/badge/OWNER-27621834910-9B7DFF?style=for-the-badge&labelColor=0B0A0F" alt="Owner"></a>
+&nbsp;
+<a href="https://vercel.com/new/clone?repository-url=https://github.com/Samkelo119/zephyrmdbot&env=BACKEND_URL&envDescription=Always-on%20bot%20URL%20(Render%2FRailway).%20Default%20https://zephyrmdbot.onrender.com&project-name=zephyrmd-pair&repository-name=zephyrmdbot"><img src="https://vercel.com/button" alt="Deploy with Vercel"></a>
 
 <br><br>
 
@@ -170,7 +172,27 @@ Timezone: **Africa/Johannesburg**. Sticker pack: **ZEPHYR MD**.
 
 ## Deploy
 
-See `DEPLOY.md` for Railway, Replit, Heroku, Termux, and VPS.
+### Vercel (pairing site + admin proxy)
+
+This repo is Vercel-ready. Import `Samkelo119/zephyrmdbot` or tap **Deploy with Vercel**.
+
+1. Vercel hosts the pairing console and `/admin` proxy
+2. The live WhatsApp socket stays on an always-on host (Render / Railway)
+3. Set `BACKEND_URL` if your bot is not `https://zephyrmdbot.onrender.com`
+
+```text
+BACKEND_URL = https://zephyrmdbot.onrender.com
+```
+
+Root files: `vercel.json` · `api/` · `.vercelignore`
+
+### Railway (always-on WhatsApp socket)
+
+Import this GitHub repo on Railway. `railway.json` + `nixpacks.toml` start `node bootstrap.js`. Set `OWNER_NUMBER` and `ADMIN_PANEL_PASSWORD`. Persistent disk keeps `auth_info/` across restarts.
+
+### Always-on bot
+
+See `DEPLOY.md` for Replit, Heroku, Termux, and VPS.
 
 ```bash
 pm2 start bootstrap.js --name zephyrmd-bot

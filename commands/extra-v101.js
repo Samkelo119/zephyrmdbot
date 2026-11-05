@@ -3,10 +3,8 @@ const yts = require('yt-search');
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 const { toAudio } = require('../lib/converter');
 
-const FOOTER = 'Pᴏᴡᴇʀᴇᴅ Bʏ MʀDɪᴇHᴀʀᴅTᴇᴄʜX𓃵';
-
 function send(sock, from, msg, text) {
-    return sock.sendMessage(from, { text: `${text}\n\n${FOOTER}` }, { quoted: msg });
+    return sock.sendMessage(from, { text }, { quoted: msg });
 }
 
 async function downloadQuotedMedia(quoted, type) {
@@ -53,7 +51,7 @@ async function vv2(sock, from, msg) {
     }
     try {
         const buffer = await downloadQuotedMedia(message[vType], vType.replace('Message', ''));
-        const caption = (message[vType].caption || '') + `\n\n${FOOTER}`;
+        const caption = message[vType].caption || '';
         if (vType === 'imageMessage') {
             await sock.sendMessage(from, { image: buffer, caption }, { quoted: msg });
         } else if (vType === 'videoMessage') {
@@ -131,7 +129,7 @@ async function ytsong(sock, from, msg, q) {
             videoUrl = videos[0].url;
             title = videos[0].title;
         }
-        await sock.sendMessage(from, { text: `_Downloading: ${title}_\n\n${FOOTER}` }, { quoted: msg });
+        await sock.sendMessage(from, { text: `Downloading: ${title}` }, { quoted: msg });
         const response = await axios.get(`https://apis-keith.vercel.app/download/dlmp3?url=${encodeURIComponent(videoUrl)}`, { timeout: 60000 });
         const data = response.data;
         if (!data || !data.status || !data.result || !data.result.downloadUrl) {
