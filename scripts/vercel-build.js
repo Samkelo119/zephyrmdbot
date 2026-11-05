@@ -4,7 +4,8 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const publicDir = path.join(root, 'public');
 const assetsDir = path.join(publicDir, 'assets');
-const backend = (process.env.BACKEND_URL || 'https://zephyrmdbot.onrender.com').replace(/\/+$/, '');
+// Use the requested live bot backend by default. BACKEND_URL may override it.
+const backend = (process.env.BACKEND_URL || 'https://zephyr-md-pair3.onrender.com').replace(/\/+$/, '');
 
 let parsedBackend;
 try {
@@ -22,8 +23,7 @@ let html = fs.readFileSync(path.join(root, 'pair.html'), 'utf8');
 const inject = `window.ZEPHYR_BACKEND = ${JSON.stringify(backend)};`;
 html = html.replace(/window\.ZEPHYR_BACKEND\s*=\s*[^;]*;/, inject);
 
-// Surface backend errors as useful messages instead of silently reporting a
-// generic JSON/network failure on the Vercel-hosted pairing page.
+// Surface backend errors as useful messages on the pairing page.
 html = html.replace(
     ".then(r => r.json()).then(data => {",
     ".then(async r => { const data = await r.json().catch(() => ({})); if (!r.ok) throw new Error(data.error || `Backend returned HTTP ${r.status}`); return data; }).then(data => {"
