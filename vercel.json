@@ -2,7 +2,8 @@
   "version": 2,
   "framework": null,
   "installCommand": "echo skip-bot-install",
-  "buildCommand": "echo vercel-ready",
+  "buildCommand": "mkdir -p public && echo vercel-ready > public/index.html",
+  "outputDirectory": "public",
   "rewrites": [
     { "source": "/", "destination": "/api/home" },
     { "source": "/go", "destination": "/api/go" },
