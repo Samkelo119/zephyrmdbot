@@ -1,8 +1,8 @@
 [phases.setup]
-nixPkgs = ["nodejs_26", "ffmpeg"]
+nixPkgs = ["nodejs_24", "ffmpeg"]
 
 [phases.install]
-cmds = ["npm install --no-audit --no-fund"]
+cmds = ["npm install --no-audit --no-fund", "touch node_modules/.install-complete"]
 
 [start]
 cmd = "node bootstrap.js"

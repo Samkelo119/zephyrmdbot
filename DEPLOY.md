@@ -1,90 +1,49 @@
 # Deployment Guide — ZEPHYR MD Bot
 
-Works on any host that can run a persistent Node.js 20+ process. Quick
-notes for each platform you asked about:
+Works on hosts that can run a persistent Node.js process. Quick notes for each platform:
 
 ## Railway
-1. Push this repo to GitHub, then "New Project → Deploy from GitHub" on Railway.
-2. Railway auto-detects Node via `railway.json` (already included) and runs `node index.js`.
-3. Add environment variables in Railway → Variables: `OWNER_NUMBER`, `ADMIN_PANEL_PASSWORD`, etc.
-4. Railway gives persistent disk by default in most plans — good for keeping your WhatsApp session (`auth_info/`) alive across restarts. Admin panel: `https://<your-app>.up.railway.app/admin`
+1. Import this repository into Railway and deploy from GitHub. The checked-in `railway.json` selects Nixpacks; `nixpacks.toml` installs Node.js 24 and ffmpeg, installs the npm dependencies, then starts `node bootstrap.js`.
+2. Add the required variables in Railway → Service → Variables. At minimum, set `OWNER_NUMBER` (country code, digits only) and a strong `ADMIN_PANEL_PASSWORD`. Add optional API keys only if you use those features.
+3. Generate a public domain in Railway → Service → Settings → Networking. The app listens on Railway's `PORT` and serves the pairing page at `/`.
+4. **Attach persistent storage before pairing.** Railway's container filesystem is ephemeral; without a persistent volume, a redeploy/restart can erase the WhatsApp credentials (`auth_info/`) and bot data (`data/`), requiring a new pairing. Use persistent storage mounted at paths that preserve both directories; do not mount a volume over the application root, because that would hide the deployed code.
+5. Open the public domain, generate a pairing code, and link it from WhatsApp → Linked devices → Link with phone number. Confirm the service logs report a successful connection.
 
 ## Replit
 1. Import the GitHub repo into Replit (or upload the zip).
 2. `.replit` is already included — it auto-runs `node index.js`.
 3. Click "Run" once to install deps + pair your number.
-4. **Free Replit "Always On" was discontinued** — for 24/7 uptime you now need a **Reserved VM Deployment** (paid) from the Deploy tab, otherwise the bot sleeps when the tab closes. This is a Replit platform rule, not something in the code.
+4. **Free Replit "Always On" was discontinued** — for 24/7 uptime you now need a **Reserved VM Deployment** (paid) from the Deploy tab, otherwise the bot sleeps when the tab closes.
 5. Admin panel: `https://<your-repl-name>.<username>.repl.co/admin`
 
 ## Heroku
 1. `app.json` + `Procfile` are included — use "Deploy to Heroku" or `heroku create && git push heroku main`.
 2. Set config vars: `heroku config:set OWNER_NUMBER=923xxxxxxxxx ADMIN_PANEL_PASSWORD="your pass"`
-3. **⚠️ Heroku's filesystem is ephemeral** — every dyno restart/redeploy wipes `auth_info/` and `data/`, meaning you'd have to re-pair your WhatsApp number each time. For a bot you pair once and forget, Railway, a VPS, or Termux is a much better fit than Heroku. If you must use Heroku, look into Heroku's add-on persistent storage or moving `auth_info`/`data` to an external store (S3, a database) — that's a bigger change outside this session's scope.
+3. **Heroku's filesystem is ephemeral** — every dyno restart/redeploy wipes `auth_info/` and `data/`, meaning you'd have to re-pair after every restart. For a bot you pair once and forget, Railway, a VPS, or Termux is a better fit.
 
 ## Katabump
-Katabump (like most Pterodactyl-panel Node hosts) just needs:
 - Startup command: `node index.js`
-- Node.js 20+ egg/version selected in the panel
-- `npm install` run once (the panel usually does this automatically on first boot)
-No special config file is needed beyond what's already in `package.json`. Upload the whole project folder (or connect your GitHub repo if the panel supports it), set your environment variables in the panel's "Startup" / "Variables" tab, and start the server.
+- Select Node.js 20+ and run `npm install` once (the panel usually does this automatically).
+- Set your environment variables in the panel.
 
 ## Termux (run it on your own Android phone)
 ```bash
 pkg install git -y
 git clone <your-repo-url>
-cd Awais_Mini_Bot2-main
+cd zephyrmdbot
 bash termux-setup.sh
 node bootstrap.js
 ```
-`termux-setup.sh` (included) installs Node, ffmpeg, and your dependencies in one go, and tells you how to keep it running in the background with `tmux` + `termux-wake-lock`. This is genuinely the most persistent option for most users since your own phone stays on.
 
-**Two things the code already handles for you on Termux:**
-- **ffmpeg**: Termux uses Android's own C library (Bionic), not standard Linux glibc/musl — the bot's prebuilt `ffmpeg-static` binary doesn't run there. The bot auto-detects Termux and switches to the system `ffmpeg` (installed by the setup script) instead — no action needed from you.
-- **sharp (stickers)**: for the same Bionic-vs-glibc reason, `sharp` (used by `.sticker`/`.toimg`) can sometimes fail to install on Termux even with `libvips` from the setup script. If that happens, the bot won't crash — only `.sticker`/`.toimg` will show a clear error, every other command keeps working normally. If you specifically need stickers to work and hit this, running the bot on Railway/a VPS instead (where sharp's prebuilt binaries work out of the box) is the reliable fix.
+## Any other host
+- The app listens on `process.env.PORT` (falls back to 3000).
+- Keep `auth_info/` and `data/` on persistent writable storage if the host uses ephemeral containers.
+- Set `OWNER_NUMBER` and `ADMIN_PANEL_PASSWORD` in the host's environment rather than committing secrets.
 
-
-## Any other host (general checklist)
-The bot already follows the rules that make it portable:
-- Listens on `process.env.PORT` (falls back to 3000) — works with any host that assigns a random port.
-- All file writes (`auth_info/`, `data/`) use relative paths created with `fs.ensureDirSync`, so they work on any writable filesystem.
-- No native build steps beyond what's in `package.json` (`sharp`, `ffmpeg-static` etc. all have prebuilt binaries for common platforms).
-- If a host gives you a persistent volume/disk, mount it at the project root so `auth_info/` and `data/` survive restarts — otherwise you'll need to re-pair after every restart.
-
-## Troubleshooting: "npm ci" / "package.json and package-lock.json are in sync" build failure
-Some hosts (Railway's Nixpacks builder especially) run `npm ci` automatically
-whenever a `package-lock.json` is present, and `npm ci` fails hard if that
-lock file doesn't exactly match `package.json`'s dependencies. This repo
-intentionally does **not** ship a `package-lock.json` (it's gitignored) —
-without one, these builders fall back to a plain `npm install`, which
-resolves fresh every time and can't go stale. If you ever generate your own
-`package-lock.json` locally and commit it, make sure to regenerate it
-(`npm install` again) any time you add/remove a dependency, or you'll hit
-this same error.
-
-## Vercel — one-click pairing site
-
-This repo is Vercel-ready at the root (`vercel.json` + `api/`).
-
-Vercel **cannot hold the WhatsApp socket**. It hosts the pairing console and admin proxy. The live bot stays on Render / Railway / a VPS.
-
-1. Open [Deploy with Vercel](https://vercel.com/new/clone?repository-url=https://github.com/Samkelo119/zephyrmdbot&env=BACKEND_URL&project-name=zephyrmd-pair)
-2. Import `https://github.com/Samkelo119/zephyrmdbot`
-3. Environment variable (optional if using the default Render bot):
-   ```
-   BACKEND_URL = https://zephyrmdbot.onrender.com
-   ```
-4. Deploy. Your URL serves `/` (pair) and `/admin`.
-5. Generate Code on the Vercel page POSTs to `BACKEND_URL/api/pair` (default Render). The bot allows CORS so the live 8-character WhatsApp code comes back in the browser.
-6. Railway is the full bot, same as Render: `nixpacks.toml` + `node bootstrap.js`. If Railway is your always-on host, set `BACKEND_URL` on Vercel to that Railway URL.
-
-Or in the Vercel dashboard: **Add New → Project → Import GitHub repo**. Framework preset: Other. Root directory: `.`
-
-## Environment variables (all hosts)
+## Environment variables
 | Variable | Purpose | Default |
 |---|---|---|
-| `OWNER_NUMBER` | Your WhatsApp number, no `+` | `923295533214` |
+| `OWNER_NUMBER` | Owner WhatsApp number, digits only | `27621834910` |
 | `PORT` | Web server port | `3000` |
-| `ADMIN_PANEL_PASSWORD` | Overrides the admin panel password | `Awais Cyber 923295533214` |
-| `OPENAI_API_KEY` | For `.ai` command | none (or set via Admin Panel → API Keys) |
-| `GIPHY_API_KEY` | Reserved for future giphy-based commands | free demo key |
-| `OMDB_API_KEY` | For `.movie` command | free demo key (also settable via Admin Panel) |
+| `ADMIN_PANEL_PASSWORD` | Admin panel password | Set a strong secret |
+| `OPENAI_API_KEY` | For `.ai` command | none |
