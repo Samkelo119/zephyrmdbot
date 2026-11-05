@@ -64,7 +64,15 @@ module.exports = async function pairHandler(req, res) {
         if (contentType.includes('text/html')) {
             let html = await backendRes.text();
             html = html.replace(
+                /window\.ZEPHYR_BACKEND\s*=\s*[^;]*;/,
+                `window.ZEPHYR_BACKEND = ${JSON.stringify(cleanBackend)};`
+            );
+            html = html.replace(
                 'const BACKEND_URL = window.location.origin;',
+                `const BACKEND_URL = "${cleanBackend}";`
+            );
+            html = html.replace(
+                'const BACKEND_URL = resolveBackend();',
                 `const BACKEND_URL = "${cleanBackend}";`
             );
             html = html.replace(

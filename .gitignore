@@ -11,3 +11,4 @@ tmp/
 package-lock.json
 Zephyr-md.zip
 *.zip
+public/

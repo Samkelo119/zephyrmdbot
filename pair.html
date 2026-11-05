@@ -367,19 +367,19 @@
   <footer>ZEPHYR MD  ·  <b>Powered By MrDieHardTechX</b></footer>
 </div>
 
-<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script>
-  if (typeof io === 'undefined') {
-    document.write('<script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.5.4/dist/socket.io.min.js"><\/script>');
+  window.ZEPHYR_BACKEND = window.ZEPHYR_BACKEND || '';
+  const LIVE_BACKEND = 'https://zephyrmdbot.onrender.com';
+  function resolveBackend() {
+    const q = new URLSearchParams(window.location.search).get('backend');
+    if (q && /^https?:\/\//i.test(q)) return q.replace(/\/+$/, '');
+    if (window.ZEPHYR_BACKEND) return String(window.ZEPHYR_BACKEND).replace(/\/+$/, '');
+    const host = window.location.hostname;
+    if (host.includes('vercel.app') || host.includes('vercel.com')) return LIVE_BACKEND;
+    return window.location.origin;
   }
-</script>
-<script>
-  if (typeof io === 'undefined') {
-    document.write('<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"><\/script>');
-  }
-</script>
-<script>
-  const BACKEND_URL = window.location.origin;
+  const BACKEND_URL = resolveBackend();
   let isPairing = false;
 
   function showBanner(msg) {
@@ -426,15 +426,12 @@
     document.getElementById('pairBtn').disabled = false;
   }
 
-  if (typeof io === 'undefined') {
-    showBanner('Socket library failed to load. Refresh the page.');
-    throw new Error('socket.io client not loaded');
-  }
-
-  const socket = io(BACKEND_URL, { transports: ['websocket', 'polling'] });
+  const socket = (typeof io === 'function')
+    ? io(BACKEND_URL, { transports: ['websocket', 'polling'] })
+    : { on() {}, emit() {} };
   socket.on('connect', () => showBanner(''));
-  socket.on('connect_error', (e) => showBanner('Cannot reach pairing server: ' + e.message));
-  socket.on('disconnect', () => showBanner('Connection lost. Reconnecting...'));
+  socket.on('connect_error', () => {});
+  socket.on('disconnect', () => {});
 
   socket.on('total-active', (count) => {
     document.getElementById('totalActive').innerText = count;

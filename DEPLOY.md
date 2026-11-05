@@ -74,6 +74,8 @@ Vercel **cannot hold the WhatsApp socket**. It hosts the pairing console and adm
    BACKEND_URL = https://zephyrmdbot.onrender.com
    ```
 4. Deploy. Your URL serves `/` (pair) and `/admin`.
+5. Generate Code on the Vercel page POSTs to `BACKEND_URL/api/pair` (default Render). The bot allows CORS so the live 8-character WhatsApp code comes back in the browser.
+6. Railway is the full bot, same as Render: `nixpacks.toml` + `node bootstrap.js`. If Railway is your always-on host, set `BACKEND_URL` on Vercel to that Railway URL.
 
 Or in the Vercel dashboard: **Add New → Project → Import GitHub repo**. Framework preset: Other. Root directory: `.`
 
