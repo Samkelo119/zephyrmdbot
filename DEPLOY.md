@@ -40,6 +40,16 @@ node bootstrap.js
 - Keep `auth_info/` and `data/` on persistent writable storage if the host uses ephemeral containers.
 - Set `OWNER_NUMBER` and `ADMIN_PANEL_PASSWORD` in the host's environment rather than committing secrets.
 
+## Vercel pairing site
+
+The pairing website is `https://<project>.vercel.app`. Generate Code posts to that same origin (`/api/pair`). The browser never opens a Render pairing URL. Optional Vercel env for the live bot only:
+
+```
+BOT_URL = https://zephyrmdbot.onrender.com
+```
+
+Use your Railway URL if Railway is the always-on bot.
+
 ## Environment variables
 | Variable | Purpose | Default |
 |---|---|---|

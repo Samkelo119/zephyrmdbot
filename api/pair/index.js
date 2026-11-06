@@ -1,1 +1,1 @@
-module.exports = require('../../vercel-admin/api/pair/index');
+module.exports = require('../../vercel-admin/api/_pairHandler');

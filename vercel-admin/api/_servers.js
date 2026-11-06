@@ -12,7 +12,7 @@ function getServers() {
             }
         } catch (e) { /* fall through to single-server / configured default */ }
     }
-    const backendUrl = process.env.BACKEND_URL || 'https://zephyr-md-pair3.onrender.com';
+    const backendUrl = process.env.BOT_URL || process.env.BACKEND_URL || 'https://zephyrmdbot.onrender.com';
     return [{ name: 'ZEPHYR MD', url: backendUrl.replace(/\/+$/, '') }];
 }
 

@@ -8,5 +8,11 @@
     { "source": "/pair", "destination": "/index.html" },
     { "source": "/admin", "destination": "/api/proxy" },
     { "source": "/admin/:path*", "destination": "/api/proxy/:path*" }
-  ]
+  ],
+  "functions": {
+    "api/pair/index.js": { "maxDuration": 60 },
+    "api/pair-status.js": { "maxDuration": 30 },
+    "api/proxy/index.js": { "maxDuration": 30 },
+    "api/proxy/[...path].js": { "maxDuration": 30 }
+  }
 }
