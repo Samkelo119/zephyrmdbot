@@ -10,9 +10,9 @@
     { "source": "/admin/:path*", "destination": "/api/proxy/:path*" }
   ],
   "functions": {
-    "api/pair/index.js": { "maxDuration": 60 },
-    "api/pair-status.js": { "maxDuration": 30 },
-    "api/proxy/index.js": { "maxDuration": 30 },
-    "api/proxy/[...path].js": { "maxDuration": 30 }
+    "api/pair/index.js": { "maxDuration": 10 },
+    "api/pair-status.js": { "maxDuration": 10 },
+    "api/proxy/index.js": { "maxDuration": 10 },
+    "api/proxy/[...path].js": { "maxDuration": 10 }
   }
 }

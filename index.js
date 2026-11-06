@@ -1894,8 +1894,26 @@ app.post('/api/pair', async (req, res) => {
         }
         const clean = normalizePairNumber(number);
         const userId = sessionIdForNumber(clean);
-        const code = await startPairingFlow(userId, clean, null, sessionName);
-        res.json({ ok: true, code, userId, sessionName: normalizeSessionName(sessionName) });
+        const named = normalizeSessionName(sessionName);
+        const existing = sessions[userId];
+        if (existing && existing.lastPairingCode && existing._waitingForPair && existing.socketAlive()) {
+            return res.json({ ok: true, code: existing.lastPairingCode, userId, sessionName: named });
+        }
+        startPairingFlow(userId, clean, null, sessionName).catch((err) => {
+            if (sessions[userId]) sessions[userId].lastPairError = err.message || 'Pairing failed';
+        });
+        const waitUntil = Date.now() + 6000;
+        while (Date.now() < waitUntil) {
+            const s = sessions[userId];
+            if (s && s.lastPairingCode) {
+                return res.json({ ok: true, code: s.lastPairingCode, userId, sessionName: named });
+            }
+            if (s && s.lastPairError) {
+                return res.status(400).json({ ok: false, error: s.lastPairError });
+            }
+            await delay(300);
+        }
+        res.json({ ok: true, pending: true, userId, sessionName: named });
     } catch (err) {
         res.status(400).json({ ok: false, error: err.message || 'Pairing failed' });
     }
@@ -1912,7 +1930,7 @@ app.get('/api/pair-status', (req, res) => {
         connected: !!(s && s.isConnected),
         initializing: !!(s && s.isInitializing),
         waiting: !!(s && s._waitingForPair),
-        code: (s && s._waitingForPair && s.lastPairingCode) ? s.lastPairingCode : null,
+        code: (s && s.lastPairingCode) ? s.lastPairingCode : null,
         error: (s && s.lastPairError) || null
     });
 });
